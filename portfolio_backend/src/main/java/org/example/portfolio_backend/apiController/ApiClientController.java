@@ -1,8 +1,8 @@
 package org.example.portfolio_backend.apiController;
-
+import org.example.portfolio_backend.model.DataReciever;
 import org.example.portfolio_backend.model.DataSender;
 import org.example.portfolio_backend.services.PortfolioApp;
-import org.springframework.http.ResponseEntity;
+import org.example.portfolio_backend.services.YFinanceClientService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,14 +11,22 @@ import java.util.List;
 public class ApiClientController {
 
     private final PortfolioApp portfolioService;
+    private final YFinanceClientService yFinanceClientService;
 
-    public ApiClientController(PortfolioApp portfolioService) {
+
+    public ApiClientController(PortfolioApp portfolioService, YFinanceClientService yFinanceClientService) {
         this.portfolioService = portfolioService;
+        this.yFinanceClientService = yFinanceClientService;
     }
 
     @GetMapping("/investments")
     public List<DataSender> getInvestments(){
         return portfolioService.getAllInvestments();
+    }
+
+    @GetMapping("/yFinance/{stock}")
+    public DataReciever getYFinanceData(@PathVariable String stock){
+        return yFinanceClientService.fetchStockData("AAPL");
     }
 
     @GetMapping("/investments/id/{id}")

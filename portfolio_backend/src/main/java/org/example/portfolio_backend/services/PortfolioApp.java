@@ -17,8 +17,6 @@ public class PortfolioApp {
         this.portfolioWrapper = portfolioWrapper;
     }
 
-    // --- MAPPING HELPERS ---
-
     public DataSender toDataSender(PortfolioEntity entity) {
         DataSender dto = new DataSender();
         dto.setId(entity.getId());
@@ -50,10 +48,6 @@ public class PortfolioApp {
         entity.setNotes(dto.getNotes());
         return entity;
     }
-
-    // =================================================================
-    // READ OPERATIONS (GET) - Matching Controller Names
-    // =================================================================
 
     public List<DataSender> getAllInvestments() {
         return portfolioWrapper.getAllItems().stream()
