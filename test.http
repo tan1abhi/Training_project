@@ -1,0 +1,28 @@
+GET http://localhost:8080/investments
+
+
+###
+POST http://localhost:8080/investment/addnew
+Content-Type: application/json
+{
+    "ticker" : "TCS.NE",
+    "quantity": 10,
+    "price": 1500
+
+
+}
+
+###
+POST https://localhost:8080/portfolio/analyze-risk 
+Content-Type: application/json
+{
+    {
+  "assets": [
+    {
+      "assetSymbol": "TCS.NS",
+      "quantity": 10,
+      "price": 3500
+    }
+  ]
+}
+}
