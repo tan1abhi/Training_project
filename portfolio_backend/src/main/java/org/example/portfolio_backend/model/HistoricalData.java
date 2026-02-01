@@ -9,6 +9,7 @@ public class HistoricalData {
     private Double close;
     private Long volume;
 
+
     public HistoricalData() {
     }
 
@@ -19,6 +20,7 @@ public class HistoricalData {
         this.low = low;
         this.close = close;
         this.volume = volume;
+
     }
 
     public String getDate() {
@@ -68,4 +70,5 @@ public class HistoricalData {
     public void setVolume(Long volume) {
         this.volume = volume;
     }
+
 }
