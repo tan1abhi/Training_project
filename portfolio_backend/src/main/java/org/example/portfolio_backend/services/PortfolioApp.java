@@ -138,4 +138,11 @@ public class PortfolioApp {
                 .map(this::toDataSender)
                 .collect(Collectors.toList());
     }
+
+    public List<DataSender> getInvestmentsByTicker(String ticker) {
+        return portfolioWrapper.getAllItems().stream()
+                .filter(item -> item.getTicker().equalsIgnoreCase(ticker))
+                .map(this::toDataSender)
+                .collect(Collectors.toList());
+    }
 }

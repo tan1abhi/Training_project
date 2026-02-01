@@ -5,6 +5,7 @@ import org.example.portfolio_backend.services.PortfolioApp;
 import org.example.portfolio_backend.services.YFinanceClientService;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -24,11 +25,6 @@ public class ApiClientController {
         return portfolioService.getAllInvestments();
     }
 
-    @GetMapping("/yFinance/{stock}")
-    public DataReciever getYFinanceData(@PathVariable String stock){
-        return yFinanceClientService.fetchStockData("AAPL");
-    }
-
     @GetMapping("/investments/id/{id}")
     public DataSender getInvestmentsById(@PathVariable long id){
         return portfolioService.getInvestmentById(id);
@@ -39,7 +35,12 @@ public class ApiClientController {
         return portfolioService.getInvestmentsBySector(sector);
     }
 
-    @GetMapping("/investments/{type}")
+    @GetMapping("/investments/ticker/{ticker}")
+    public List<DataSender> getInvestmentsByTicker(@PathVariable String ticker){
+        return portfolioService.getInvestmentsByTicker(ticker);
+    }
+
+    @GetMapping("/investments/type/{type}")
     public List<DataSender> getInvestmentsByType(@PathVariable String type){
         return portfolioService.getInvestmentsByType(type);
     }
@@ -66,7 +67,67 @@ public class ApiClientController {
 
     @PostMapping("/investment/addnew")
     public void addNewInvestment(@RequestBody DataSender newInvestment){
-        portfolioService.addNewInvestment(newInvestment);
+        if (newInvestment == null || newInvestment.getTicker() == null || newInvestment.getTicker().isBlank()
+                || newInvestment.getQuantity() == null) {
+            return;
+        }
+
+        String ticker = newInvestment.getTicker().trim().toUpperCase();
+        Integer quantity = newInvestment.getQuantity();
+
+        DataReciever fetchedData = null;
+        try {
+            fetchedData = yFinanceClientService.fetchStockData(ticker);
+        } catch (Exception ignored) {
+            // Keep fetchedData null and fall back to defaults
+        }
+
+        assert fetchedData != null;
+        DataSender dto = buildDataSender(ticker, quantity, fetchedData);
+        portfolioService.addNewInvestment(dto);
+    }
+
+
+    private DataSender buildDataSender(String ticker, Integer quantity, DataReciever fetchedData) {
+        DataSender dto = new DataSender();
+        dto.setTicker(ticker);
+        dto.setQuantity(quantity);
+
+        System.out.println(fetchedData.getHistoricalData());
+        System.out.println(fetchedData.getLatestPrice());
+        System.out.println(fetchedData.getMetadata().getCurrency());
+        System.out.println(fetchedData.getPeriod());
+
+        // buyPrice from fetched data if available
+        Double latestPrice = null;
+        if (fetchedData != null) {
+            try {
+                latestPrice = fetchedData.getLatestPrice();
+            } catch (Exception ignored) { /* ignore */ }
+        }
+        dto.setBuyPrice(latestPrice != null ? latestPrice : 0.0);
+        dto.setAssetType("STOCK"); // default
+        if (fetchedData != null && fetchedData.getMetadata() != null) {
+            var meta = fetchedData.getMetadata();
+
+            if (meta.getSector() != null && !meta.getSector().isBlank()) {
+                dto.setSector(meta.getSector());
+            } else if (meta.getIndustry() != null && !meta.getIndustry().isBlank()) {
+                dto.setSector(meta.getIndustry());
+            }
+            if (meta.getCurrency() != null && !meta.getCurrency().isBlank()) {
+                dto.setCurrency(meta.getCurrency());
+            }
+        }
+        dto.setRiskLabel(null);
+
+        // Set purchase date to now
+        dto.setPurchaseDate(LocalDateTime.now());
+
+        dto.setTargetSellPrice(null);
+        dto.setStopLossPrice(null);
+        dto.setNotes(null);
+        return dto;
     }
 
     @PutMapping("/investment/{id}")
@@ -77,7 +138,6 @@ public class ApiClientController {
     @DeleteMapping("/investment/{id}")
     public void deleteInvestmentById(@PathVariable long id){
         portfolioService.deleteInvestmentById(id);
-        return;
     }
 
 }
