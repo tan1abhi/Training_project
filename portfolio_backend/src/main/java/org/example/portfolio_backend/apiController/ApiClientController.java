@@ -85,6 +85,7 @@ public class ApiClientController {
         assert fetchedData != null;
         DataSender dto = buildDataSender(ticker, quantity, fetchedData);
         portfolioService.addNewInvestment(dto);
+        yFinanceClientService.saveFetchedHistoricalData(ticker, fetchedData);
     }
 
 
@@ -100,14 +101,12 @@ public class ApiClientController {
 
         // buyPrice from fetched data if available
         Double latestPrice = null;
-        if (fetchedData != null) {
-            try {
-                latestPrice = fetchedData.getLatestPrice();
-            } catch (Exception ignored) { /* ignore */ }
-        }
+        try {
+            latestPrice = fetchedData.getLatestPrice();
+        } catch (Exception ignored) { /* ignore */ }
         dto.setBuyPrice(latestPrice != null ? latestPrice : 0.0);
         dto.setAssetType("STOCK"); // default
-        if (fetchedData != null && fetchedData.getMetadata() != null) {
+        if (fetchedData.getMetadata() != null) {
             var meta = fetchedData.getMetadata();
 
             if (meta.getSector() != null && !meta.getSector().isBlank()) {

@@ -13,6 +13,7 @@ public class PortfolioEntity {
     private Long id;
 
     // --- Core Data ---
+
     @Column(nullable = false)
     private String ticker;        // e.g., "AAPL"
 
