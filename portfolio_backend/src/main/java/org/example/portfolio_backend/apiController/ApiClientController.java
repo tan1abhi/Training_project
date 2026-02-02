@@ -1,13 +1,28 @@
 package org.example.portfolio_backend.apiController;
+import org.example.portfolio_backend.entity.PortfolioEntity;
 import org.example.portfolio_backend.model.DataReciever;
 import org.example.portfolio_backend.model.DataSender;
 import org.example.portfolio_backend.services.PortfolioApp;
 import org.example.portfolio_backend.services.YFinanceClientService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import java.io.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.*;
+@CrossOrigin(origins= "*")
 @RestController
 public class ApiClientController {
 
@@ -137,6 +152,45 @@ public class ApiClientController {
     @DeleteMapping("/investments/delete-all")
     public void deleteAllInvestments() {
         portfolioService.deleteAllInvestments();
+
+
+    @PostMapping("/portfolio/analyze-risk")
+    public ResponseEntity<Object> analyzePortfolioRisk(@RequestBody Map<String, Object> payload) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonInput = mapper.writeValueAsString(payload);
+
+            ProcessBuilder pb = new ProcessBuilder(
+                    "python3",
+                    "../risk_analysis/risk_analysis.py",
+                    jsonInput
+            );
+
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream())
+            );
+
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line);
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Python error: " + output);
+            }
+
+            return ResponseEntity.ok(mapper.readTree(output.toString()));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Risk analysis failed: " + e.getMessage());
+        }
     }
 
 }
