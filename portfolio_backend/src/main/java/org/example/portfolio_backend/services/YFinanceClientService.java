@@ -5,12 +5,14 @@ import org.example.portfolio_backend.entity.PortfolioEntity;
 import org.example.portfolio_backend.model.DataReciever;
 import org.example.portfolio_backend.model.HistoricalData;
 import org.example.portfolio_backend.repo.HistoricalDataI;
+import org.example.portfolio_backend.repo.HistoricalDataRepository;
 import org.example.portfolio_backend.repo.PortfolioI;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,13 +46,19 @@ public class YFinanceClientService {
     /**
      * NEW METHOD: Takes the already-fetched data and saves it to the DB
      */
+    public List<HistoricalDataEntity> findByTicker(String ticker) {
+        return historicalRepoWrapper.findByTicker(ticker);
+    }
+
     public void saveFetchedHistoricalData(String ticker, DataReciever fetchedData) {
-        if (fetchedData == null || fetchedData.getHistoricalData() == null || fetchedData.getHistoricalData().isEmpty()) {
+
+        if (fetchedData == null || fetchedData.getHistoricalData() == null
+                || fetchedData.getHistoricalData().isEmpty()) {
             System.out.println("No historical data to save for: " + ticker);
             return;
         }
 
-        // 1. Find the parent Portfolio item (Foreign Key reference)
+        // 1️⃣ Find parent portfolio entity
         PortfolioEntity parent = portfolioRepoWrapper.getAllItems().stream()
                 .filter(item -> item.getTicker().equalsIgnoreCase(ticker))
                 .findFirst()
@@ -61,13 +69,22 @@ public class YFinanceClientService {
             return;
         }
 
-        // 2. Map the List<HistoricalData> from the model to List<HistoricalDataEntity>
+        // 2️⃣ Fetch existing history dates for this ticker
+        Set<LocalDate> existingDates = historicalRepoWrapper.findByTicker(ticker)
+                .stream()
+                .map(HistoricalDataEntity::getPriceDate)
+                .collect(Collectors.toSet());
+
+        // 3️⃣ Map ONLY new historical entries
         List<HistoricalDataEntity> entities = fetchedData.getHistoricalData().stream()
+                .filter(data -> {
+                    LocalDate date = LocalDate.parse(data.getDate());
+                    return !existingDates.contains(date);
+                })
                 .map(data -> {
                     HistoricalDataEntity entity = new HistoricalDataEntity();
-                    entity.setPortfolioItem(parent); // Set FK
                     entity.setTicker(parent.getTicker());
-                    entity.setPriceDate(LocalDate.parse(data.getDate())); // Parses "yyyy-MM-dd"
+                    entity.setPriceDate(LocalDate.parse(data.getDate()));
                     entity.setOpenPrice(data.getOpen());
                     entity.setHighPrice(data.getHigh());
                     entity.setLowPrice(data.getLow());
@@ -77,8 +94,15 @@ public class YFinanceClientService {
                 })
                 .collect(Collectors.toList());
 
-        // 3. Persist to DB
+        // 4️⃣ Persist only if new data exists
+        if (entities.isEmpty()) {
+            System.out.println("No new historical data to insert for " + ticker);
+            return;
+        }
+
         historicalRepoWrapper.saveAllEntries(entities);
-        System.out.println("Successfully saved " + entities.size() + " historical points for " + ticker);
+        System.out.println("Saved " + entities.size() + " NEW historical points for " + ticker);
     }
+
+
 }

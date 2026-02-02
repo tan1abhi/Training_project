@@ -94,11 +94,6 @@ public class ApiClientController {
         dto.setTicker(ticker);
         dto.setQuantity(quantity);
 
-        System.out.println(fetchedData.getHistoricalData());
-        System.out.println(fetchedData.getLatestPrice());
-        System.out.println(fetchedData.getMetadata().getCurrency());
-        System.out.println(fetchedData.getPeriod());
-
         // buyPrice from fetched data if available
         Double latestPrice = null;
         try {
@@ -137,6 +132,11 @@ public class ApiClientController {
     @DeleteMapping("/investment/{id}")
     public void deleteInvestmentById(@PathVariable long id){
         portfolioService.deleteInvestmentById(id);
+    }
+
+    @DeleteMapping("/investments/delete-all")
+    public void deleteAllInvestments() {
+        portfolioService.deleteAllInvestments();
     }
 
 }

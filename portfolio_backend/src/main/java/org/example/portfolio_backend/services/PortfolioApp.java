@@ -145,4 +145,8 @@ public class PortfolioApp {
                 .map(this::toDataSender)
                 .collect(Collectors.toList());
     }
+
+    public void deleteAllInvestments() {
+        portfolioWrapper.getAllItems().forEach(item -> portfolioWrapper.deleteItem(item.getId()));
+    }
 }
