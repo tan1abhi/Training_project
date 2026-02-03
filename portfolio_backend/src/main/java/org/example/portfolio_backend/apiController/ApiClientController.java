@@ -152,7 +152,7 @@ public class ApiClientController {
     @DeleteMapping("/investments/delete-all")
     public void deleteAllInvestments() {
         portfolioService.deleteAllInvestments();
-
+    }
 
     @PostMapping("/portfolio/analyze-risk")
     public ResponseEntity<Object> analyzePortfolioRisk(@RequestBody Map<String, Object> payload) {
