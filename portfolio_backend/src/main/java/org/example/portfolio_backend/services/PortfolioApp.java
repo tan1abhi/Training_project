@@ -182,13 +182,6 @@ public class PortfolioApp {
                 .collect(Collectors.toList());
     }
 
-    public List<DataSender> getInvestmentsByTicker(String ticker) {
-        return portfolioWrapper.getAllItems().stream()
-                .filter(item -> item.getTicker().equalsIgnoreCase(ticker))
-                .map(this::toDataSender)
-                .collect(Collectors.toList());
-    }
-
     public void deleteAllInvestments() {
         portfolioWrapper.getAllItems().forEach(item -> portfolioWrapper.deleteItem(item.getId()));
     }

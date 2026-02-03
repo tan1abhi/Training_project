@@ -6,9 +6,12 @@ import org.example.portfolio_backend.model.DataSender;
 import org.example.portfolio_backend.services.BalanceService;
 import org.example.portfolio_backend.services.PortfolioApp;
 import org.example.portfolio_backend.services.YFinanceClientService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -222,6 +225,5 @@ public class ApiClientController {
                     .body("Risk analysis failed: " + e.getMessage());
         }
     }
+}
 
-}
-}
