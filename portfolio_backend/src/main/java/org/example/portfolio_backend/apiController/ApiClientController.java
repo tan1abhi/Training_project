@@ -1,5 +1,5 @@
 package org.example.portfolio_backend.apiController;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.portfolio_backend.model.AmountRequest;
 import org.example.portfolio_backend.model.DataReciever;
 import org.example.portfolio_backend.model.DataSender;
@@ -114,6 +114,9 @@ public class ApiClientController {
 
         String ticker = newInvestment.getTicker().trim().toUpperCase();
         Integer quantity = newInvestment.getQuantity();
+        String notes = newInvestment.getNotes();
+        Double targetSellPrice = newInvestment.getTargetSellPrice();
+
 
         DataReciever fetchedData = null;
         try {
@@ -124,7 +127,7 @@ public class ApiClientController {
 
         if (fetchedData == null) return "Error: External data unavailable.";
 
-        DataSender dto = buildDataSender(ticker, quantity, fetchedData);
+        DataSender dto = buildDataSender(ticker, quantity, notes, targetSellPrice, fetchedData);
 
         // --- THE TRANSACTIONAL LOGIC ---
         // portfolioService.attemptPurchase handles the deduction via balanceService internally
@@ -138,10 +141,12 @@ public class ApiClientController {
         }
     }
 
-    private DataSender buildDataSender(String ticker, Integer quantity, DataReciever fetchedData) {
+    private DataSender buildDataSender(String ticker, Integer quantity, String notes, Double setTargetSellPrice ,  DataReciever fetchedData) {
         DataSender dto = new DataSender();
         dto.setTicker(ticker);
         dto.setQuantity(quantity);
+        dto.setNotes(notes);
+        dto.setTargetSellPrice(setTargetSellPrice);
 
         // buyPrice from fetched data if available
         Double latestPrice = null;
@@ -166,9 +171,7 @@ public class ApiClientController {
 
         dto.setRiskLabel("LOW");
         dto.setPurchaseDate(LocalDateTime.now());
-        dto.setTargetSellPrice(null);
-        dto.setStopLossPrice(null);
-        dto.setNotes(null);
+        dto.setStopLossPrice(0.00);
         return dto;
     }
 
