@@ -4,24 +4,25 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "historical_prices")
+@Table(
+        name = "historical_prices",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"ticker", "price_date"})
+        }
+)
 public class HistoricalDataEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // --- Foreign Key Reference ---
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "portfolio_id", nullable = false)
-    private PortfolioEntity portfolioItem;
+    // --- Core Instrument Data ---
 
-    // --- Core Data ---
+    @Column(nullable = false, length = 10)
+    private String ticker; // e.g., "AAPL"
+
     @Column(name = "price_date", nullable = false)
     private LocalDate priceDate;
-
-    @Column(nullable = false)
-    private String ticker; // e.g., "AAPL"
 
     private Double openPrice;
     private Double highPrice;
@@ -33,14 +34,18 @@ public class HistoricalDataEntity {
     public HistoricalDataEntity() {
     }
 
-    // Full Constructor
-    public HistoricalDataEntity(PortfolioEntity portfolioItem, LocalDate priceDate,
-                                Double openPrice, Double highPrice, Double lowPrice,
-                                Double closePrice, Long volume) {
-        this.portfolioItem = portfolioItem;
+    // Convenience Constructor
+    public HistoricalDataEntity(
+            String ticker,
+            LocalDate priceDate,
+            Double openPrice,
+            Double highPrice,
+            Double lowPrice,
+            Double closePrice,
+            Long volume
+    ) {
+        this.ticker = ticker;
         this.priceDate = priceDate;
-        // Automatically set ticker from the linked portfolio item if available
-        this.ticker = (portfolioItem != null) ? portfolioItem.getTicker() : null;
         this.openPrice = openPrice;
         this.highPrice = highPrice;
         this.lowPrice = lowPrice;
@@ -48,7 +53,8 @@ public class HistoricalDataEntity {
         this.volume = volume;
     }
 
-    // Getters and Setters
+    // --- Getters & Setters ---
+
     public Long getId() {
         return id;
     }
@@ -57,16 +63,12 @@ public class HistoricalDataEntity {
         this.id = id;
     }
 
-    public PortfolioEntity getPortfolioItem() {
-        return portfolioItem;
+    public String getTicker() {
+        return ticker;
     }
 
-    public void setPortfolioItem(PortfolioEntity portfolioItem) {
-        this.portfolioItem = portfolioItem;
-        // Sync ticker when portfolio item is set
-        if (portfolioItem != null) {
-            this.ticker = portfolioItem.getTicker();
-        }
+    public void setTicker(String ticker) {
+        this.ticker = ticker;
     }
 
     public LocalDate getPriceDate() {
@@ -75,14 +77,6 @@ public class HistoricalDataEntity {
 
     public void setPriceDate(LocalDate priceDate) {
         this.priceDate = priceDate;
-    }
-
-    public String getTicker() {
-        return ticker;
-    }
-
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
     }
 
     public Double getOpenPrice() {

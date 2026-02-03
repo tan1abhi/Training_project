@@ -2,6 +2,8 @@ package org.example.portfolio_backend.repo;
 
 import org.example.portfolio_backend.entity.HistoricalDataEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -17,5 +19,7 @@ public interface HistoricalDataRepository extends JpaRepository<HistoricalDataEn
     List<HistoricalDataEntity> findByTickerAndPriceDateBetween(String ticker, LocalDate start, LocalDate end);
 
     // 3. Find by the Portfolio Item's ID (Using the Foreign Key relationship)
-    List<HistoricalDataEntity> findByPortfolioItemId(Long portfolioId);
+
+    @Query("SELECT h FROM HistoricalDataEntity h WHERE h.ticker = :ticker")
+    List<HistoricalDataEntity> findByTicker(@Param("ticker") String ticker);
 }

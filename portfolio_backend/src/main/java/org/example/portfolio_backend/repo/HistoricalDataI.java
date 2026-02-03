@@ -4,6 +4,7 @@ import org.example.portfolio_backend.entity.HistoricalDataEntity;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 @Repository
@@ -27,10 +28,6 @@ public class HistoricalDataI {
 
     public List<HistoricalDataEntity> getHistoryByTicker(String ticker) {
         return repository.findByTickerOrderByPriceDateDesc(ticker);
-    }
-
-    public List<HistoricalDataEntity> getHistoryById(Long id) {
-        return repository.findByPortfolioItemId(id);
     }
 
     public void deleteHistoryByTicker(String ticker) {
@@ -64,5 +61,9 @@ public class HistoricalDataI {
                 .mapToDouble(HistoricalDataEntity::getHighPrice)
                 .max()
                 .orElse(0.0);
+    }
+
+    public List<HistoricalDataEntity> findByTicker(String ticker) {
+        return repository.findByTicker(ticker);
     }
 }
