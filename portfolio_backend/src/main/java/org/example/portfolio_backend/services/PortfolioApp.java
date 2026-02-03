@@ -4,6 +4,7 @@ import org.example.portfolio_backend.entity.PortfolioEntity;
 import org.example.portfolio_backend.model.DataSender;
 import org.example.portfolio_backend.repo.PortfolioI;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,10 +13,14 @@ import java.util.stream.Collectors;
 public class PortfolioApp {
 
     private final PortfolioI portfolioWrapper;
+    private final BalanceService balanceService; // New dependency injected
 
-    public PortfolioApp(PortfolioI portfolioWrapper) {
+    public PortfolioApp(PortfolioI portfolioWrapper, BalanceService balanceService) {
         this.portfolioWrapper = portfolioWrapper;
+        this.balanceService = balanceService;
     }
+
+    // --- Mapper Methods ---
 
     public DataSender toDataSender(PortfolioEntity entity) {
         DataSender dto = new DataSender();
@@ -49,6 +54,42 @@ public class PortfolioApp {
         return entity;
     }
 
+    // --- Balance Methods for Controller ---
+
+    public Double getUserBalance() {
+        return balanceService.getCurrentBalance();
+    }
+
+    // =================================================================
+    // CORE LOGIC: PURCHASE WITH BALANCE CHECK
+    // =================================================================
+
+    /**
+     * This method validates if the user has enough money.
+     * If yes, it deducts funds and saves the investment.
+     */
+    @Transactional
+    public boolean attemptPurchase(DataSender dto) {
+        // Calculate the cost based on quantity and the buyPrice (fetched from YFinance)
+        double totalCost = dto.getQuantity() * dto.getBuyPrice();
+
+        // 1. Check balance and deduct funds via BalanceService
+        boolean paymentProcessed = balanceService.deductFunds(totalCost);
+
+        if (paymentProcessed) {
+            // 2. If payment was successful, save the investment to the main table
+            addNewInvestment(dto);
+            return true;
+        }
+
+        // 3. If not enough money, return false to the controller
+        return false;
+    }
+
+    // =================================================================
+    // READ OPERATIONS
+    // =================================================================
+
     public List<DataSender> getAllInvestments() {
         return portfolioWrapper.getAllItems().stream()
                 .map(this::toDataSender)
@@ -81,7 +122,6 @@ public class PortfolioApp {
                 .collect(Collectors.toList());
     }
 
-    // NEW METHOD: Fixed to match getInvestmentsByCurr in Controller
     public List<DataSender> getInvestmentsByCurr(String curr) {
         return portfolioWrapper.getAllItems().stream()
                 .filter(item -> item.getCurrency().equalsIgnoreCase(curr))
@@ -89,22 +129,26 @@ public class PortfolioApp {
                 .collect(Collectors.toList());
     }
 
+    public List<DataSender> getInvestmentsByTicker(String ticker) {
+        return portfolioWrapper.getAllItems().stream()
+                .filter(item -> item.getTicker().equalsIgnoreCase(ticker))
+                .map(this::toDataSender)
+                .collect(Collectors.toList());
+    }
+
     // =================================================================
-    // WRITE OPERATIONS (POST, PUT, DELETE)
+    // WRITE OPERATIONS
     // =================================================================
 
     public void addNewInvestment(DataSender dto) {
-        // Convert DTO to Entity before passing to Repo
         PortfolioEntity entity = toEntity(dto);
         portfolioWrapper.saveItem(entity);
     }
 
     public void updateInvestment(DataSender updatedInvestment) {
-        // Fetch existing by ID from the DTO
         PortfolioEntity existingItem = portfolioWrapper.getItemById(updatedInvestment.getId());
 
         if (existingItem != null) {
-            // Update the existing entity with new values from DTO
             existingItem.setTicker(updatedInvestment.getTicker());
             existingItem.setQuantity(updatedInvestment.getQuantity());
             existingItem.setBuyPrice(updatedInvestment.getBuyPrice());
@@ -120,7 +164,6 @@ public class PortfolioApp {
         }
     }
 
-    // NEW METHOD: Fixed to match deleteInvestmentById in Controller
     public void deleteInvestmentById(long id) {
         portfolioWrapper.deleteItem(id);
     }
