@@ -1,39 +1,61 @@
 package org.example.portfolio_backend.apiController;
-import org.example.portfolio_backend.entity.PortfolioEntity;
+
+import org.example.portfolio_backend.model.AmountRequest;
 import org.example.portfolio_backend.model.DataReciever;
 import org.example.portfolio_backend.model.DataSender;
+import org.example.portfolio_backend.services.BalanceService;
 import org.example.portfolio_backend.services.PortfolioApp;
 import org.example.portfolio_backend.services.YFinanceClientService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import java.io.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.*;
-@CrossOrigin(origins= "*")
 @RestController
 public class ApiClientController {
 
     private final PortfolioApp portfolioService;
     private final YFinanceClientService yFinanceClientService;
+    private final BalanceService balanceService; // 1. Injected BalanceService
 
-
-    public ApiClientController(PortfolioApp portfolioService, YFinanceClientService yFinanceClientService) {
+    // 2. Updated Constructor to include BalanceService
+    public ApiClientController(PortfolioApp portfolioService,
+                               YFinanceClientService yFinanceClientService,
+                               BalanceService balanceService) {
         this.portfolioService = portfolioService;
         this.yFinanceClientService = yFinanceClientService;
+        this.balanceService = balanceService;
     }
+
+    // =================================================================
+    // BALANCE ENDPOINTS
+    // =================================================================
+
+    @GetMapping("/balance")
+    public Double getBalance() {
+        // 3. Directly using the balanceService object
+        return balanceService.getCurrentBalance();
+    }
+
+    @PostMapping("/balance/update")
+    public ResponseEntity<String> updateBalance(@RequestBody AmountRequest payload) {
+        Double amount = payload == null ? null : payload.getAmount();
+        if (amount == null) {
+            return ResponseEntity.badRequest().body("Missing 'amount' in JSON body");
+        }
+        try {
+            balanceService.topUpBalance(amount);
+            return ResponseEntity.ok("Success: Balance updated by " + amount);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    // =================================================================
+    // INVESTMENT ENDPOINTS
+    // =================================================================
 
     @GetMapping("/investments")
     public List<DataSender> getInvestments(){
@@ -81,10 +103,10 @@ public class ApiClientController {
     }
 
     @PostMapping("/investment/addnew")
-    public void addNewInvestment(@RequestBody DataSender newInvestment){
+    public String addNewInvestment(@RequestBody DataSender newInvestment){
         if (newInvestment == null || newInvestment.getTicker() == null || newInvestment.getTicker().isBlank()
                 || newInvestment.getQuantity() == null) {
-            return;
+            return "Error: Missing required fields.";
         }
 
         String ticker = newInvestment.getTicker().trim().toUpperCase();
@@ -94,15 +116,24 @@ public class ApiClientController {
         try {
             fetchedData = yFinanceClientService.fetchStockData(ticker);
         } catch (Exception ignored) {
-            // Keep fetchedData null and fall back to defaults
+            return "Error: Could not fetch stock data for " + ticker;
         }
 
-        assert fetchedData != null;
-        DataSender dto = buildDataSender(ticker, quantity, fetchedData);
-        portfolioService.addNewInvestment(dto);
-        yFinanceClientService.saveFetchedHistoricalData(ticker, fetchedData);
-    }
+        if (fetchedData == null) return "Error: External data unavailable.";
 
+        DataSender dto = buildDataSender(ticker, quantity, fetchedData);
+
+        // --- THE TRANSACTIONAL LOGIC ---
+        // portfolioService.attemptPurchase handles the deduction via balanceService internally
+        boolean success = portfolioService.attemptPurchase(dto);
+
+        if (success) {
+            yFinanceClientService.saveFetchedHistoricalData(ticker, fetchedData);
+            return "Success: Investment added and balance deducted.";
+        } else {
+            return "Error: Insufficient balance to complete purchase.";
+        }
+    }
 
     private DataSender buildDataSender(String ticker, Integer quantity, DataReciever fetchedData) {
         DataSender dto = new DataSender();
@@ -114,11 +145,12 @@ public class ApiClientController {
         try {
             latestPrice = fetchedData.getLatestPrice();
         } catch (Exception ignored) { /* ignore */ }
+
         dto.setBuyPrice(latestPrice != null ? latestPrice : 0.0);
-        dto.setAssetType("STOCK"); // default
+        dto.setAssetType("STOCK");
+
         if (fetchedData.getMetadata() != null) {
             var meta = fetchedData.getMetadata();
-
             if (meta.getSector() != null && !meta.getSector().isBlank()) {
                 dto.setSector(meta.getSector());
             } else if (meta.getIndustry() != null && !meta.getIndustry().isBlank()) {
@@ -128,11 +160,9 @@ public class ApiClientController {
                 dto.setCurrency(meta.getCurrency());
             }
         }
-        dto.setRiskLabel(null);
 
-        // Set purchase date to now
+        dto.setRiskLabel("LOW");
         dto.setPurchaseDate(LocalDateTime.now());
-
         dto.setTargetSellPrice(null);
         dto.setStopLossPrice(null);
         dto.setNotes(null);
@@ -193,4 +223,5 @@ public class ApiClientController {
         }
     }
 
+}
 }
