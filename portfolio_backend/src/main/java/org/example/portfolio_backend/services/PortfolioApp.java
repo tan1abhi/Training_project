@@ -35,6 +35,7 @@ public class PortfolioApp {
         dto.setTargetSellPrice(entity.getTargetSellPrice());
         dto.setStopLossPrice(entity.getStopLossPrice());
         dto.setNotes(entity.getNotes());
+        dto.setPurchaseDate(entity.getPurchaseDate());
         return dto;
     }
 
@@ -51,6 +52,7 @@ public class PortfolioApp {
         entity.setTargetSellPrice(dto.getTargetSellPrice());
         entity.setStopLossPrice(dto.getStopLossPrice());
         entity.setNotes(dto.getNotes());
+        entity.setPurchaseDate(dto.getPurchaseDate());
         return entity;
     }
 
