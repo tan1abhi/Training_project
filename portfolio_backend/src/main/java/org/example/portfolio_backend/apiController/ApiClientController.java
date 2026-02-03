@@ -106,10 +106,20 @@ public class ApiClientController {
     }
 
     @PostMapping("/investment/addnew")
-    public String addNewInvestment(@RequestBody DataSender newInvestment){
-        if (newInvestment == null || newInvestment.getTicker() == null || newInvestment.getTicker().isBlank()
+    public ResponseEntity<?> addNewInvestment(@RequestBody DataSender newInvestment) {
+
+        // 1️⃣ Validate request
+        if (newInvestment == null
+                || newInvestment.getTicker() == null
+                || newInvestment.getTicker().isBlank()
                 || newInvestment.getQuantity() == null) {
-            return "Error: Missing required fields.";
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "Missing required fields (ticker / quantity)"
+                    ));
         }
 
         String ticker = newInvestment.getTicker().trim().toUpperCase();
@@ -117,28 +127,77 @@ public class ApiClientController {
         String notes = newInvestment.getNotes();
         Double targetSellPrice = newInvestment.getTargetSellPrice();
 
-
-        DataReciever fetchedData = null;
+        // 2️⃣ Fetch external stock data
+        DataReciever fetchedData;
         try {
             fetchedData = yFinanceClientService.fetchStockData(ticker);
-        } catch (Exception ignored) {
-            return "Error: Could not fetch stock data for " + ticker;
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "Failed to fetch stock data",
+                            "ticker", ticker
+                    ));
         }
 
-        if (fetchedData == null) return "Error: External data unavailable.";
+        if (fetchedData == null) {
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "External data unavailable",
+                            "ticker", ticker
+                    ));
+        }
 
-        DataSender dto = buildDataSender(ticker, quantity, notes, targetSellPrice, fetchedData);
+        // 3️⃣ Build DTO
+        DataSender dto = buildDataSender(
+                ticker,
+                quantity,
+                notes,
+                targetSellPrice,
+                fetchedData
+        );
 
-        // --- THE TRANSACTIONAL LOGIC ---
-        // portfolioService.attemptPurchase handles the deduction via balanceService internally
-        boolean success = portfolioService.attemptPurchase(dto);
+        // 4️⃣ Attempt transactional purchase
+        boolean success;
+        try {
+            success = portfolioService.attemptPurchase(dto);
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "Internal error while processing investment"
+                    ));
+        }
 
-        if (success) {
+        // 5️⃣ Final response
+        if (!success) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "Insufficient balance to complete purchase"
+                    ));
+        }
+
+        // 6️⃣ Save history (non-blocking)
+        try {
             yFinanceClientService.saveFetchedHistoricalData(ticker, fetchedData);
-            return "Success: Investment added and balance deducted.";
-        } else {
-            return "Error: Insufficient balance to complete purchase.";
+        } catch (Exception ignored) {
+            // history failure should NOT fail investment
         }
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(Map.of(
+                        "status", "success",
+                        "message", "Investment added successfully",
+                        "ticker", ticker,
+                        "quantity", quantity
+                ));
     }
 
     private DataSender buildDataSender(String ticker, Integer quantity, String notes, Double setTargetSellPrice ,  DataReciever fetchedData) {
