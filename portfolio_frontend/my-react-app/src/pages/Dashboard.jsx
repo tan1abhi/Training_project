@@ -7,15 +7,13 @@ import {
   TextField,
   MenuItem,
   CircularProgress,
-  Stack
+  Stack,
+  Button
 } from '@mui/material';
-import { api } from '../services/api'; // adjust path if needed
+import { api } from '../services/api'; 
 
-// ==========================
-// FILTER CONFIG
-// ==========================
 const filterFields = [
-  { label: 'ID', value: 'id' },
+  { label: 'All', value: 'all' },
   { label: 'Ticker', value: 'ticker' },
   { label: 'Sector', value: 'sector' },
   { label: 'Type', value: 'type' },
@@ -24,7 +22,7 @@ const filterFields = [
 ];
 
 const endpointMap = {
-  id: (v) => api.getInvestmentById(v),
+  all: () => api.getInvestments(),
   ticker: (v) => api.getInvestmentsByTicker(v),
   sector: (v) => api.getInvestmentsBySector(v),
   type: (v) => api.getInvestmentsByType(v),
@@ -33,22 +31,74 @@ const endpointMap = {
 };
 
 const Dashboard = () => {
-  // ==========================
-  // STATE
-  // ==========================
+  const [investments, setInvestments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
   const [allInvestments, setAllInvestments] = useState([]);
   const [filteredInvestments, setFilteredInvestments] = useState([]);
-
   const [filterField, setFilterField] = useState('');
   const [filterValue, setFilterValue] = useState('');
   const [filterOptions, setFilterOptions] = useState([]);
-
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ==========================
-  // INITIAL LOAD
-  // ==========================
+  
+  const loadPortfolio = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getInvestments();
+      setInvestments(response.data);
+    } catch (error) {
+      console.error("Failed to fetch investments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPortfolio();
+  }, []);
+
+  const removeInvestmentFromState = (id) => {
+  setInvestments(prev => prev.filter(inv => inv.id !== id));
+  setAllInvestments(prev => prev.filter(inv => inv.id !== id));
+  setFilteredInvestments(prev => prev.filter(inv => inv.id !== id));
+  };
+  
+  const handleSell = async (id, ticker) => {
+  const confirmSell = window.confirm(
+    `Are you sure you want to sell your ${ticker} shares at current market price?`
+  );
+
+  if (!confirmSell) return;
+
+  try {
+    const response = await api.sellStock(id);
+    const { sellValue, profitPercentage } = response.data;
+
+    alert(
+      `Transaction Successful!\n` +
+      `Sold: ${ticker}\n` +
+      `Received: $${sellValue.toFixed(2)}\n` +
+      `Profit/Loss: ${profitPercentage.toFixed(2)}%`
+    );
+
+   
+    removeInvestmentFromState(id);
+
+   
+    window.dispatchEvent(new Event('balanceUpdated'));
+
+  } catch (error) {
+    console.error("Sell error:", error);
+    alert("Failed to complete the sale. Is the Python bridge running?");
+  }
+};
+
+const handleSeeGraph = (id, ticker) => {
+  alert(`Graph feature coming soon for ${ticker} (ID: ${id})!`);
+}
+
+
   useEffect(() => {
     api.getInvestments()
       .then((res) => {
@@ -62,9 +112,7 @@ const Dashboard = () => {
       });
   }, []);
 
-  // ==========================
-  // UPDATE FILTER VALUES
-  // ==========================
+ 
   useEffect(() => {
     if (!filterField) {
       setFilterOptions([]);
@@ -101,9 +149,6 @@ const Dashboard = () => {
     setFilterValue('');
   }, [filterField, allInvestments]);
 
-  // ==========================
-  // APPLY FILTER
-  // ==========================
   useEffect(() => {
     if (!filterField || !filterValue) {
       setFilteredInvestments(allInvestments);
@@ -121,110 +166,145 @@ const Dashboard = () => {
       });
   }, [filterField, filterValue, allInvestments]);
 
-  // ==========================
-  // RENDER
-  // ==========================
+
   return (
-    <Box sx={{ height: '100%', width: '100%', p: 3 }}>
-      <Grid container spacing={3} sx={{ height: '100%' }}>
-        {/* LEFT SECTION */}
-        <Grid item xs={12} md={4}>
-          <Paper
-            elevation={1}
-            sx={{ height: '100%', p: 2, display: 'flex', flexDirection: 'column' }}
-          >
-            {/* FILTERS */}
-            <Box sx={{ mb: 2, width: '100%' }}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    label="Filter By"
-                    value={filterField}
-                    onChange={(e) => setFilterField(e.target.value)}
-                  >
-                    {filterFields.map((f) => (
-                      <MenuItem key={f.value} value={f.value}>
-                        {f.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-
-                <Grid item xs={6}>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    label="Value"
-                    value={filterValue}
-                    disabled={!filterField}
-                    onChange={(e) => setFilterValue(e.target.value)}
-                  >
-                    {filterOptions.map((val) => (
-                      <MenuItem key={val} value={val}>
-                        {val}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
+  <Box sx={{ height: '100%', width: '100%', p: 3 }}>
+    <Grid container spacing={3} sx={{ height: '100%' }}>
+      
+      <Grid item xs={12} md={4} sx={{ width: "35%"}}>
+        <Paper
+          elevation={1}
+          sx={{
+            height: '100%',
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          
+          <Box sx={{ mb: 2, width: '100%' }}>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Filter By"
+                  value={filterField}
+                  onChange={(e) => setFilterField(e.target.value)}
+                >
+                  {filterFields.map((f) => (
+                    <MenuItem key={f.value} value={f.value}>
+                      {f.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
-            </Box>
 
-            {/* LIST */}
-            <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
-              {loading && (
-                <Stack alignItems="center" mt={3}>
-                  <CircularProgress size={24} />
-                </Stack>
-              )}
+              <Grid item xs={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Value"
+                  value={filterValue}
+                  disabled={!filterField}
+                  onChange={(e) => setFilterValue(e.target.value)}
+                >
+                  {filterOptions.map((val) => (
+                    <MenuItem key={val} value={val}>
+                      {val}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+          </Box>
 
-              {error && (
-                <Typography color="error">{error}</Typography>
-              )}
+         
+          <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+            {loading && (
+              <Stack alignItems="center" mt={3}>
+                <CircularProgress size={24} />
+              </Stack>
+            )}
 
-              {!loading && filteredInvestments.map((inv) => (
-                <Paper key={inv.id} variant="outlined" sx={{ p: 1, mb: 1 }}>
-                  <Typography variant="subtitle2">
-                    {inv.ticker} ({inv.assetType})
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Qty: {inv.quantity} | {inv.currency} | Risk: {inv.riskLabel}
-                  </Typography>
+            {error && (
+              <Typography color="error">{error}</Typography>
+            )}
+
+            {!loading &&
+              filteredInvestments.map((inv) => (
+                <Paper
+                  key={inv.id}
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    mb: 1,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  {/* LEFT INFO */}
+                  <Box>
+                    <Typography variant="subtitle2">
+                      {inv.ticker} ({inv.assetType})
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Qty: {inv.quantity} | {inv.currency} | Risk: {inv.riskLabel}
+                    </Typography>
+                  </Box>
+
+                  
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={() => handleSell(inv.id, inv.ticker)}
+                  >
+                    Sell
+                  </Button>
+
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={() => handleSeeGraph(inv.id, inv.ticker)}
+                  >
+                    seeGraph
+                  </Button>
                 </Paper>
               ))}
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* RIGHT SECTION */}
-        <Grid item xs={12} md={8}>
-          <Paper
-            elevation={3}
-            sx={{
-              height: '100%',
-              p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 2,
-              backgroundColor: '#f9f9f9'
-            }}
-          >
-            <Typography variant="h5" color="text.secondary" gutterBottom>
-              Portfolio Analytics
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              (Interactive Graphs will load here based on your portfolio data)
-            </Typography>
-          </Paper>
-        </Grid>
+          </Box>
+        </Paper>
       </Grid>
-    </Box>
-  );
+
+      <Grid item xs={12} md={8}>
+        <Paper
+          elevation={3}
+          sx={{
+            height: '100%',
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 2,
+            backgroundColor: '#f9f9f9'
+          }}
+        >
+          <Typography variant="h5" color="text.secondary" gutterBottom>
+            Portfolio Analytics
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            (Interactive Graphs will load here based on your portfolio data)
+          </Typography>
+        </Paper>
+      </Grid>
+    </Grid>
+  </Box>
+);
 };
 
 export default Dashboard;

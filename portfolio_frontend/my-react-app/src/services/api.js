@@ -34,7 +34,7 @@ export const api = {
         apiClient.get(`/investments/risk/${risk}`),
 
     // GET /investments/curr/{curr}
-    getInvestmentsByCurrency: (currency) =>
+    getInvestmentsByCurr: (currency) =>
         apiClient.get(`/investments/curr/${currency}`),
 
     // POST /balance/update - Sends AmountRequest object
