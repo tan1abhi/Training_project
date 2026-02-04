@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -202,17 +202,23 @@ const Dashboard = () => {
         {/* RIGHT SECTION */}
         <Grid item xs={12} md={8}>
           <Paper
-            elevation={1}
+            elevation={3}
             sx={{
               height: '100%',
               p: 2,
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              borderRadius: 2,
+              backgroundColor: '#f9f9f9'
             }}
           >
-            <Typography variant="h5" color="text.secondary">
-              Graphs Area
+            <Typography variant="h5" color="text.secondary" gutterBottom>
+              Portfolio Analytics
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              (Interactive Graphs will load here based on your portfolio data)
             </Typography>
           </Paper>
         </Grid>

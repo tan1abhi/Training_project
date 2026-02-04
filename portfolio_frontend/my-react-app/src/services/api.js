@@ -50,5 +50,8 @@ export const api = {
     deleteInvestment: (id) => apiClient.delete(`/investment/${id}`),
 
     // POST /portfolio/analyze-risk
-    analyzeRisk: (portfolioData) => apiClient.post('/portfolio/analyze-risk', portfolioData)
+    analyzeRisk: (portfolioData) => apiClient.post('/portfolio/analyze-risk', portfolioData),
+
+    sellStock: (id) => apiClient.post(`/investment/sell/${id}`)
+
 };

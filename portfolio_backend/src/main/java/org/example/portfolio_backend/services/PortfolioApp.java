@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -86,6 +87,36 @@ public class PortfolioApp {
 
         // 3. If not enough money, return false to the controller
         return false;
+    }
+    // Add these methods to PortfolioApp.java
+
+    @Transactional
+    public Map<String, Object> sellInvestment(Long id, Double currentMarketPrice) {
+        // 1. Find the existing investment
+        PortfolioEntity entity = portfolioWrapper. getItemById(id);
+
+
+        // 2. Calculate Financials
+        Double buyPrice = entity.getBuyPrice();
+        Integer quantity = entity.getQuantity();
+        Double totalSellValue = currentMarketPrice * quantity;
+
+        // Profit % = ((Current - Buy) / Buy) * 100
+        Double profitPercentage = ((currentMarketPrice - buyPrice) / buyPrice) * 100;
+
+        // 3. Update User Balance
+        balanceService.addFunds(totalSellValue);
+
+        // 4. Remove from Portfolio
+        portfolioWrapper.deleteItem(id);
+
+        // 5. Return summary for the frontend
+        return Map.of(
+                "ticker", entity.getTicker(),
+                "sellValue", totalSellValue,
+                "profitPercentage", profitPercentage,
+                "quantitySold", quantity
+        );
     }
 
     // =================================================================
