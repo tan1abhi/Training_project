@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useState , useEffect} from 'react';
 import {
   Box,
   Grid,
@@ -13,26 +13,28 @@ import {
 
 import { api } from '../services/api'; 
 
-const mockStocks = [
-  { name: 'Apple Inc.', ticker: 'AAPL', price: 182.45, sector: 'Technology' },
-  { name: 'Amazon.com Inc.', ticker: 'AMZN', price: 242.96, sector: 'Consumer Cyclical' },
-  { name: 'Microsoft Corp.', ticker: 'MSFT', price: 415.22, sector: 'Technology' },
-  { name: 'Tesla Inc.', ticker: 'TSLA', price: 198.12, sector: 'Automotive' },
-  { name: 'NVIDIA Corp.', ticker: 'NVDA', price: 612.34, sector: 'Semiconductors' },
-  { name: 'Meta Platforms', ticker: 'META', price: 485.67, sector: 'Technology' },
-  { name: 'Apple Inc.', ticker: 'AAPL', price: 182.45, sector: 'Technology' },
-    { name: 'Apple Inc.', ticker: 'AAPL', price: 182.45, sector: 'Technology' },  
-    { name: 'Amazon.com Inc.', ticker: 'AMZN', price: 242.96, sector: 'Consumer Cyclical' },
-];
-
-
 const BrowseStocks = () => {
-
   const [search, setSearch] = useState('');
   const [buyLoading, setBuyLoading] = useState(false);
+
   const [investments, setInvestments] = useState([]);
   const [allInvestments, setAllInvestments] = useState([]);
   const [filteredInvestments, setFilteredInvestments] = useState([]);
+
+  const [mockStocks, setMockStocks] = useState([]);
+
+  useEffect(() => {
+    const fetchStocks = async () => {
+      try {
+        const res = await api.getBrowseStocks();
+        setMockStocks(res.data);
+      } catch (error) {
+        console.error('Failed to fetch stocks', error);
+      }
+    };
+
+    fetchStocks();
+  }, []);
 
   const [buyForm, setBuyForm] = useState({
     ticker: '',
@@ -50,18 +52,18 @@ const BrowseStocks = () => {
   };
 
   const loadPortfolio = async () => {
-  try {
-    setBuyLoading(true);
-    const response = await api.getInvestments();
-    setInvestments(response.data);
-    setAllInvestments(response.data);
-    setFilteredInvestments(response.data);
-  } catch (error) {
-    console.error("Failed to fetch investments:", error);
-  } finally {
-    setBuyLoading(false);
-  }
-};
+    try {
+      setBuyLoading(true);
+      const response = await api.getInvestments();
+      setInvestments(response.data);
+      setAllInvestments(response.data);
+      setFilteredInvestments(response.data);
+    } catch (error) {
+      console.error('Failed to fetch investments:', error);
+    } finally {
+      setBuyLoading(false);
+    }
+  };
 
   const handleQuickBuyClick = (ticker) => {
     setBuyForm((prev) => ({
@@ -70,56 +72,48 @@ const BrowseStocks = () => {
     }));
   };
 
-
   const handleBuyStock = async () => {
     if (!buyForm.ticker || !buyForm.quantity) {
-    alert('Ticker and Quantity are required');
-    return;
-  }
+      alert('Ticker and Quantity are required');
+      return;
+    }
 
-  const payload = {
-    ticker: buyForm.ticker.toUpperCase(),
-    quantity: Number(buyForm.quantity),
-    targetSellPrice: buyForm.targetSellPrice
-      ? Number(buyForm.targetSellPrice)
-      : null,
-    notes: buyForm.notes
+    const payload = {
+      ticker: buyForm.ticker.toUpperCase(),
+      quantity: Number(buyForm.quantity),
+      targetSellPrice: buyForm.targetSellPrice
+        ? Number(buyForm.targetSellPrice)
+        : null,
+      notes: buyForm.notes
+    };
+
+    try {
+      setBuyLoading(true);
+      await api.addInvestment(payload);
+
+      alert(`Successfully bought ${payload.quantity} shares of ${payload.ticker}`);
+
+      setBuyForm({
+        ticker: '',
+        quantity: '',
+        targetSellPrice: '',
+        notes: ''
+      });
+
+      loadPortfolio();
+    } catch (error) {
+      console.error('Buy error:', error);
+      alert(error.response?.data?.message || 'Failed to buy stock');
+    } finally {
+      setBuyLoading(false);
+    }
   };
 
-  try {
-    setBuyLoading(true);
-
-    await api.addInvestment(payload);
-
-    alert(`Successfully bought ${payload.quantity} shares of ${payload.ticker}`);
-
-    // Reset form
-    setBuyForm({
-      ticker: '',
-      quantity: '',
-      targetSellPrice: '',
-      notes: ''
-    });
-
-    // Refresh portfolio list
-    loadPortfolio();
-
-  } catch (error) {
-    console.error('Buy error:', error);
-    alert(error.response?.data?.message || 'Failed to buy stock');
-  } finally {
-    setBuyLoading(false);
-  }
-};
-
-
-  
   const filteredStocks = mockStocks.filter(
     (stock) =>
-      stock.name.toLowerCase().includes(search.toLowerCase()) ||
+      stock.companyName.toLowerCase().includes(search.toLowerCase()) ||
       stock.ticker.toLowerCase().includes(search.toLowerCase())
   );
-
   return (
     <Box
       sx={{
@@ -194,43 +188,44 @@ const BrowseStocks = () => {
                   </Typography>
                 )}
 
-                {filteredStocks.map((stock) => (
-                  <ListItem
-                    key={stock.ticker}
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      display: 'grid',
-                      gridTemplateColumns: '2fr 1fr 1fr 2fr 1fr',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Typography variant="body2">
-                      {stock.name}
-                    </Typography>
+                {mockStocks.map((stock) => (
+  <ListItem
+    key={stock.id}
+    sx={{
+      px: 2,
+      py: 1,
+      display: 'grid',
+      gridTemplateColumns: '2fr 1fr 1fr 2fr 1fr',
+      alignItems: 'center'
+    }}
+  >
+    <Typography variant="body2">
+      {stock.companyName}
+    </Typography>
 
-                    <Typography variant="body2">
-                      {stock.ticker}
-                    </Typography>
+    <Typography variant="body2">
+      {stock.ticker}
+    </Typography>
 
-                    <Typography variant="body2">
-                      ${stock.price.toFixed(2)}
-                    </Typography>
+    <Typography variant="body2">
+      ${Number(stock.currentPrice).toFixed(2)}
+    </Typography>
 
-                    <Typography variant="body2" color="text.secondary">
-                      {stock.sector}
-                    </Typography>
+    <Typography variant="body2" color="text.secondary">
+      {stock.sector}
+    </Typography>
 
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="primary"
-                      onClick={() => handleQuickBuyClick(stock.ticker)}
-                    >
-                      Buy
-                    </Button>
-                  </ListItem>
-                ))}
+    <Button
+      size="small"
+      variant="outlined"
+      color="primary"
+      onClick={() => handleQuickBuyClick(stock.ticker)}
+    >
+      Buy
+    </Button>
+  </ListItem>
+))}
+
                 </List>
               </Box>  
           </Paper>

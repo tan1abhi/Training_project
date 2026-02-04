@@ -10,7 +10,6 @@ const TopBar = () => {
   const fetchCurrentBalance = useCallback(async () => {
     try {
       const response = await api.getBalance();
-      // response.data is a Double from your Spring Boot backend
       setBalance(response.data);
     } catch (error) {
       console.error("Error fetching balance:", error);

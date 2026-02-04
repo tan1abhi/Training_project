@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Base URL for your Spring Boot Backend
 const BASE_URL = 'http://localhost:8080';
 
 const apiClient = axios.create({
@@ -12,8 +11,7 @@ const apiClient = axios.create({
 
 export const api = {
     // GET /balance
-    getBalance: () => apiClient.get('/balance'),
-
+    
     getInvestmentById: (id) =>
     apiClient.get(`/investments/id/${id}`),
 
@@ -37,6 +35,8 @@ export const api = {
     getInvestmentsByCurr: (currency) =>
         apiClient.get(`/investments/curr/${currency}`),
 
+    getBalance: () => apiClient.get('/balance'),
+
     // POST /balance/update - Sends AmountRequest object
     updateBalance: (amount) => apiClient.post('/balance/update', { amount }),
 
@@ -52,6 +52,7 @@ export const api = {
     // POST /portfolio/analyze-risk
     analyzeRisk: (portfolioData) => apiClient.post('/portfolio/analyze-risk', portfolioData),
 
-    sellStock: (id) => apiClient.post(`/investment/sell/${id}`)
+    sellStock: (id) => apiClient.post(`/investment/sell/${id}`),
 
+    getBrowseStocks: () => apiClient.get('/market/stocks')
 };
