@@ -16,7 +16,7 @@ const BrowseStocks = () => {
     spacing={3}
     sx={{ height: '100%', width: '100%' }}
   >
-    {/* LEFT SECTION — 30% (Stock List) */}
+   
     <Grid item xs={12} md={4} sx={{ height: '100%', width : '25%' }}>
       <Paper
         elevation={1}
@@ -31,7 +31,7 @@ const BrowseStocks = () => {
           Stock List
         </Typography>
 
-        {/* Scrollable List Area */}
+        
         <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
           <Typography variant="body2" color="text.secondary">
             Stock list placeholder
@@ -40,7 +40,7 @@ const BrowseStocks = () => {
       </Paper>
     </Grid>
 
-    {/* RIGHT SECTION — 70% */}
+    
     <Grid item xs={12} md={8} sx={{ height: '100%' , width : '65%' }}>
       <Box
         sx={{
@@ -50,7 +50,6 @@ const BrowseStocks = () => {
           gap: 2
         }}
       >
-        {/* BUY — 70% */}
         <Paper
           elevation={1}
           sx={{
@@ -63,7 +62,7 @@ const BrowseStocks = () => {
           </Typography>
         </Paper>
 
-        {/* SELL — 30% */}
+        
         <Paper
           elevation={1}
           sx={{

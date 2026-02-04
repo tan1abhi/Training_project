@@ -1,7 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './layout/MainLayout';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './components/Dashboard';
 import RiskEngine from './pages/RiskEngine';
 import BrowseStocks from './pages/BrowseStocks';
 import Profile from './pages/Profile';
@@ -16,6 +16,7 @@ function App() {
           <Route path="/risk-engine" element={<RiskEngine />} />
           <Route path="/browse-stocks" element={<BrowseStocks />} />
           <Route path="/profile" element={<Profile />} />
+
         </Routes>
       </MainLayout>
     </Router>

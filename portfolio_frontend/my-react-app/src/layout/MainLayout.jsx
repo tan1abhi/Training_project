@@ -2,6 +2,7 @@ import React from 'react';
 import { Box } from '@mui/material';
 import TopBar from '../components/TopBar';
 import SideNav from '../components/SideNav';
+import Dashboard from '../components/Dashboard';
 
 const MainLayout = ({ children }) => {
   const drawerWidth = 0;
@@ -13,16 +14,11 @@ const MainLayout = ({ children }) => {
         display: 'flex',
         height: '100vh',
         width: '100vw',
-        overflow: 'hidden',
       }}
     >
-      {/* Top Bar */}
       <TopBar />
-
-      {/* Side Navigation */}
       <SideNav />
 
-      {/* Main Content Area */}
       <Box
         component="main"
         sx={{
@@ -31,13 +27,12 @@ const MainLayout = ({ children }) => {
           mt: `${appBarHeight}px`,
           height: `calc(100vh - ${appBarHeight}px)`,
           width: `calc(100vw - ${drawerWidth}px)`,
-          overflow: 'hidden',
+          overflow: 'auto', 
           display: 'flex',
           flexDirection: 'column',
         }}
       >
-        {/* Page Content Wrapper */}
-        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}> 
           {children}
         </Box>
       </Box>
