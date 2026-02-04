@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Grid, Paper, Typography } from '@mui/material';
 
 const BrowseStocks = () => {
@@ -34,7 +33,7 @@ const BrowseStocks = () => {
         {/* Scrollable List Area */}
         <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
           <Typography variant="body2" color="text.secondary">
-            Stock list placeholder
+            Stock list 
           </Typography>
         </Box>
       </Paper>
@@ -59,7 +58,7 @@ const BrowseStocks = () => {
           }}
         >
           <Typography variant="h6" gutterBottom>
-            Buy Component
+            Add stocks
           </Typography>
         </Paper>
 
@@ -72,7 +71,7 @@ const BrowseStocks = () => {
           }}
         >
           <Typography variant="h6" gutterBottom>
-            Sell Component
+            remove stocks
           </Typography>
         </Paper>
       </Box>

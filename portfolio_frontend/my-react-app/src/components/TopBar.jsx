@@ -21,7 +21,6 @@ const TopBar = () => {
   useEffect(() => {
     fetchCurrentBalance();
     
-    // Refresh balance every 15 seconds to reflect stock purchase updates
     const interval = setInterval(fetchCurrentBalance, 15000);
     return () => clearInterval(interval);
   }, []);
