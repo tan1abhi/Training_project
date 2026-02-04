@@ -8,14 +8,23 @@ import {
   MenuItem,
   Stack,
   CircularProgress,
-  Chip
+  Chip,
+  Button,
+  Dialog,
+  DialogTitle,
+  IconButton, 
+  DialogContent
 } from '@mui/material';
+
+import CloseIcon from '@mui/icons-material/Close';
 
 const RiskEngine = () => {
   const [riskData, setRiskData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [openGraphsDialog, setOpenGraphsDialog] = useState(false);
+
 
   useEffect(() => {
     const fetchRiskData = () => {
@@ -44,18 +53,17 @@ const RiskEngine = () => {
     <Box sx={{ height: '100%', p: 3 }}>
       <Grid container spacing={3} sx={{ height: '100%'}}>
 
-        {/* LEFT PANEL */}
-        <Grid item xs={12} md={4} sx={{ height: '100%' ,  width: '25%', pr: 5}}>
+        <Grid item xs={12} md={4} sx={{ height: '100%', width: '30%', pr: 1 }}>
           <Paper
             elevation={1}
             sx={{
               height: '100%',
               p: 2,
               display: 'flex',
-              flexDirection: 'column',
-               width: '100%'
+              flexDirection: 'column'
             }}
           >
+            
             <TextField
               select
               fullWidth
@@ -71,16 +79,22 @@ const RiskEngine = () => {
               <MenuItem value="high">High Risk</MenuItem>
             </TextField>
 
-            <Box sx={{ flexGrow: 1, overflowY: 'auto' , width: '100%'}}>
+            <Box
+              sx={{
+                height: '70%',
+                overflowY: 'auto',
+                pr: 1,
+                pb: 4,
+                borderRadius: 1
+              }}
+            >
               {loading && (
                 <Stack alignItems="center" mt={4}>
                   <CircularProgress size={28} />
                 </Stack>
               )}
 
-              {error && (
-                <Typography color="error">{error}</Typography>
-              )}
+              {error && <Typography color="error">{error}</Typography>}
 
               {riskData && (
                 <>
@@ -123,11 +137,21 @@ const RiskEngine = () => {
                 </>
               )}
             </Box>
+
+     
+           
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => setOpenGraphsDialog(true)}
+              >
+                Show Graphs
+              </Button>
           </Paper>
         </Grid>
 
-        {/* RIGHT PANEL */}
-        <Grid item xs={12} md={8} sx={{ height: '100%' , width: '70%'}}>
+
+        <Grid item xs={12} md={8} sx={{ height: '100%' , width: '65%'}}>
           <Paper
             elevation={1}
             sx={{
@@ -185,6 +209,49 @@ const RiskEngine = () => {
         </Grid>
 
       </Grid>
+
+      <Dialog
+        open={openGraphsDialog}
+        onClose={() => setOpenGraphsDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            m: 0,
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          Portfolio Risk Graphs
+
+          <IconButton
+            aria-label="close"
+            onClick={() => setOpenGraphsDialog(false)}
+            sx={{ color: 'grey.500' }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Box
+            sx={{
+              height: 400,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Typography color="text.secondary">
+              Graphs will be rendered here
+            </Typography>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
     </Box>
   );
 };
