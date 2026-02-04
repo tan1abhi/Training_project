@@ -3,35 +3,32 @@ from flask_cors import CORS
 import mysql.connector
 import yfinance as yf
 import numpy as np
+import joblib
+import os
+import mysql.connector
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # 🔥 allow React to call Flask
+CORS(app)
+
+risk_model = joblib.load("risk_model.pkl")
 
 
-# =========================
-# DB
-# =========================
 def fetch_transactions_from_db():
     conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="n3u3da!",
-        database="portfoliodb"
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME")
     )
-
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT ticker, quantity, buy_price
-        FROM portfolio_items
-    """)
+    cursor.execute("SELECT ticker, quantity, buy_price FROM portfolio_items")
     rows = cursor.fetchall()
     conn.close()
     return rows
 
 
-# =========================
-# TRANSACTIONS → POSITIONS
-# =========================
 def build_assets(rows):
     positions = {}
 
@@ -60,9 +57,26 @@ def build_assets(rows):
     return assets
 
 
-# =========================
-# RISK ENGINE
-# =========================
+
+def monte_carlo_simulation(portfolio_returns, days=30, simulations=1000):
+    mean_return = np.mean(portfolio_returns)
+    std_dev = np.std(portfolio_returns)
+
+    results = []
+    for _ in range(simulations):
+        simulated = np.random.normal(mean_return, std_dev, days)
+        cumulative = np.prod(1 + simulated) - 1
+        results.append(cumulative)
+
+    return results
+
+
+def calculate_var(portfolio_returns, confidence=0.95):
+    sorted_returns = np.sort(portfolio_returns)
+    index = int((1 - confidence) * len(sorted_returns))
+    return sorted_returns[index]
+
+
 def analyze_portfolio(assets):
     values, symbols = [], []
 
@@ -74,9 +88,8 @@ def analyze_portfolio(assets):
     prices = data["Adj Close"] if "Adj Close" in data else data["Close"]
 
     valid = prices.columns.tolist()
-
-    aligned_values = []
     aligned_symbols = []
+    aligned_values = []
 
     for a in assets:
         if a["assetSymbol"] in valid:
@@ -89,37 +102,59 @@ def analyze_portfolio(assets):
 
     vol_10 = portfolio_returns.rolling(10).std().iloc[-1]
     vol_30 = portfolio_returns.rolling(30).std().iloc[-1]
-
     ratio = vol_10 / vol_30 if vol_30 != 0 else 0
 
-    if ratio > 1.5:
-        risk = "HIGH"
-    elif ratio > 1.1:
-        risk = "MEDIUM"
-    else:
-        risk = "LOW"
+    mc_results = monte_carlo_simulation(portfolio_returns)
+    best_case = np.percentile(mc_results, 95)
+    worst_case = np.percentile(mc_results, 5)
+    expected_case = np.mean(mc_results)
+
+    var_95 = calculate_var(portfolio_returns, 0.95)
+    avg_corr = returns.corr().values[np.triu_indices(len(aligned_symbols), k=1)].mean()
+
+    feature_vector = np.array([[ratio, avg_corr, var_95, worst_case]])
+    risk = risk_model.predict(feature_vector)[0]
+
+    vol_msg = "Recent market movement is stable." if ratio < 1.1 else "Recent market volatility has increased."
+
+    mc_msg = (
+        f"In a good market scenario, your portfolio might gain about {round(best_case*100,2)}% "
+        f"next month. In a bad scenario, it could drop about {round(worst_case*100,2)}%."
+    )
+
+    var_msg = (
+        f"There is only a 5% chance your portfolio could lose more than "
+        f"{round(abs(var_95)*100,2)}% in a single day."
+    )
+
+    summary = f"Overall portfolio risk is {risk}. {vol_msg} {mc_msg} {var_msg}"
 
     return {
-        "risk": risk,
+        "risk_level": risk,
         "volatility_ratio": round(float(ratio), 4),
-        "assets": aligned_symbols
+        "average_correlation": round(float(avg_corr), 4),
+        "monte_carlo": {
+            "best_case_return": round(float(best_case), 4),
+            "expected_return": round(float(expected_case), 4),
+            "worst_case_return": round(float(worst_case), 4)
+        },
+        "value_at_risk_95": round(float(var_95), 4),
+        "investor_summary": summary,
+        "assets_analyzed": aligned_symbols
     }
 
 
-# =========================
-# API ROUTE
-# =========================
 @app.route("/api/portfolio/risk", methods=["GET"])
 def get_portfolio_risk():
     transactions = fetch_transactions_from_db()
     assets = build_assets(transactions)
 
     if not assets:
-        return jsonify({"error": "No assets"}), 400
+        return jsonify({"error": "No assets found in portfolio"}), 400
 
     result = analyze_portfolio(assets)
     return jsonify(result)
 
 
 if __name__ == "__main__":
-    app.run(debug=True , port=4000)
+    app.run(debug=True, port=4000)
