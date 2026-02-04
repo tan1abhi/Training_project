@@ -18,105 +18,95 @@ const Profile = () => {
     alignItems: 'center',
     minHeight: '100vh',
     p: 3,
-    backgroundColor: '#f5f7fa'
+    backgroundColor: '#f3f4f6', // softer neutral
   }}
 >
-  <Card sx={{ maxWidth: 420, width: '100%' }} elevation={3}>
-    <CardContent>
+  <Card
+    elevation={2}
+    sx={{
+      maxWidth: 440,
+      width: '100%',
+      borderRadius: 3,
+    }}
+  >
+    <CardContent sx={{ p: 4 }}>
       {/* PROFILE HEADER */}
-      <Box sx={{ textAlign: 'center', mb: 3 }}>
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
         <Avatar
           sx={{
-            width: 90,
-            height: 90,
+            width: 96,
+            height: 96,
             mx: 'auto',
             mb: 2,
             bgcolor: 'primary.main',
-            fontSize: 32
+            fontSize: 34,
           }}
         >
           S
         </Avatar>
 
-        <Typography variant="h6">
+        <Typography variant="h6" fontWeight={600}>
           Sumit Kumar
         </Typography>
 
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 0.5 }}
+        >
           Active Investor
         </Typography>
       </Box>
 
       <Divider sx={{ mb: 3 }} />
 
-      {/* PROFILE DETAILS – VERTICAL */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Full Name
-          </Typography>
-          <Typography variant="body1">
-            Sumit Kumar
-          </Typography>
-        </Box>
+      {/* PROFILE DETAILS */}
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        {[
+          { label: 'Full Name', value: 'Sumit Kumar' },
+          { label: 'Email', value: 'abhishek@example.com' },
+          { label: 'Username', value: 'sumit_01' },
+          { label: 'Phone', value: '+91 98765 43210' },
+          { label: 'Account Type', value: 'Individual' },
+          { label: 'Preferred Currency', value: 'USD' },
+          {
+            label: 'Bio',
+            value:
+              'Long-term investor focused on technology and growth stocks.',
+          },
+        ].map((item) => (
+          <Box
+            key={item.label}
+            sx={{
+              py: 1.5,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '&:last-of-type': {
+                borderBottom: 'none',
+              },
+            }}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ letterSpacing: 0.3 }}
+            >
+              {item.label}
+            </Typography>
 
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Email
-          </Typography>
-          <Typography variant="body1">
-            abhishek@example.com
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Username
-          </Typography>
-          <Typography variant="body1">
-            sumit_01
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Phone
-          </Typography>
-          <Typography variant="body1">
-            +91 98765 43210
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Account Type
-          </Typography>
-          <Typography variant="body1">
-            Individual
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Preferred Currency
-          </Typography>
-          <Typography variant="body1">
-            USD
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Bio
-          </Typography>
-          <Typography variant="body1">
-            Long-term investor focused on technology and growth stocks.
-          </Typography>
-        </Box>
+            <Typography
+              variant="body1"
+              sx={{ mt: 0.5, lineHeight: 1.5 }}
+            >
+              {item.value}
+            </Typography>
+          </Box>
+        ))}
       </Box>
     </CardContent>
   </Card>
 </Box>
+
 
   );
 };

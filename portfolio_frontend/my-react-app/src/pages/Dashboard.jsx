@@ -10,10 +10,9 @@ import {
   Stack,
   Button
 } from '@mui/material';
-import { api } from '../services/api'; 
+import { api } from '../services/api';
 
 const filterFields = [
-  { label: 'All', value: 'all' },
   { label: 'Ticker', value: 'ticker' },
   { label: 'Sector', value: 'sector' },
   { label: 'Type', value: 'type' },
@@ -22,7 +21,6 @@ const filterFields = [
 ];
 
 const endpointMap = {
-  all: () => api.getInvestments(),
   ticker: (v) => api.getInvestmentsByTicker(v),
   sector: (v) => api.getInvestmentsBySector(v),
   type: (v) => api.getInvestmentsByType(v),
@@ -32,18 +30,18 @@ const endpointMap = {
 
 const Dashboard = () => {
   const [investments, setInvestments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
   const [allInvestments, setAllInvestments] = useState([]);
   const [filteredInvestments, setFilteredInvestments] = useState([]);
-  const [filterField, setFilterField] = useState('');
+  const [filterField, setFilterField] = useState('all');
   const [filterValue, setFilterValue] = useState('');
   const [filterOptions, setFilterOptions] = useState([]);
+
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sellingId, setSellingId] = useState(null);
 
 
-  
+
   const loadPortfolio = async () => {
     try {
       setLoading(true);
@@ -61,164 +59,229 @@ const Dashboard = () => {
   }, []);
 
   const removeInvestmentFromState = (id, soldQty) => {
-  setFilteredInvestments((prev) =>
-    prev
-      .map((inv) =>
-        inv.id === id
-          ? { ...inv, quantity: inv.quantity - soldQty }
-          : inv
-      )
-      .filter((inv) => inv.quantity > 0)
-  );
-};
+    setFilteredInvestments((prev) =>
+      prev
+        .map((inv) =>
+          inv.id === id
+            ? { ...inv, quantity: inv.quantity - soldQty }
+            : inv
+        )
+        .filter((inv) => inv.quantity > 0)
+    );
+  };
 
 
   const handleSell = async (id, ticker, maxQuantity) => {
-  if (sellingId === id) return;
+    if (sellingId === id) return;
 
-  const quantity = window.prompt(
-    `Enter quantity to sell (max ${maxQuantity}):`,
-    maxQuantity
-  );
-
-  if (!quantity) return;
-
-  const qty = Number(quantity);
-
-  if (!Number.isInteger(qty) || qty <= 0 || qty > maxQuantity) {
-    alert('Invalid quantity');
-    return;
-  }
-
-  const confirmSell = window.confirm(
-    `Are you sure you want to sell ${qty} shares of ${ticker} at current market price?`
-  );
-
-  if (!confirmSell) return;
-
-  try {
-    setSellingId(id);
-
-    const response = await api.sellStock(id, qty);
-
-    const { sellValue, profitPercentage } = response.data || {};
-    console.log('Sell response data:', response.data);
-
-    removeInvestmentFromState(id, qty);
-
-    window.dispatchEvent(new Event('balanceUpdated'));
-
-    alert(
-      `Transaction Successful!\n` +
-      `Sold: ${ticker}\n` +
-      `Quantity: ${qty}\n` +
-      `Received: $${Number(sellValue).toFixed(2)}\n` +
-      `Profit/Loss: ${Number(profitPercentage).toFixed(2)}%`
+    const quantity = window.prompt(
+      `Enter quantity to sell (max ${maxQuantity}):`,
+      maxQuantity
     );
-  } catch (error) {
-    console.error('Sell error:', error);
 
-    if (error.response) {
-      alert(error.response.data || 'Sell failed');
-    } else {
-      alert('Sell request is taking longer than usual. Please wait and refresh.');
+    if (!quantity) return;
+
+    const qty = Number(quantity);
+
+    if (!Number.isInteger(qty) || qty <= 0 || qty > maxQuantity) {
+      alert('Invalid quantity');
+      return;
     }
-  } finally {
-    setSellingId(null);
+
+    const confirmSell = window.confirm(
+      `Are you sure you want to sell ${qty} shares of ${ticker} at current market price?`
+    );
+
+    if (!confirmSell) return;
+
+    try {
+      setSellingId(id);
+
+      const response = await api.sellStock(id, qty);
+
+      const { sellValue, profitPercentage } = response.data || {};
+      console.log('Sell response data:', response.data);
+
+      removeInvestmentFromState(id, qty);
+
+      window.dispatchEvent(new Event('balanceUpdated'));
+
+      alert(
+        `Transaction Successful!\n` +
+        `Sold: ${ticker}\n` +
+        `Quantity: ${qty}\n` +
+        `Received: $${Number(sellValue).toFixed(2)}\n` +
+        `Profit/Loss: ${Number(profitPercentage).toFixed(2)}%`
+      );
+    } catch (error) {
+      console.error('Sell error:', error);
+
+      if (error.response) {
+        alert(error.response.data || 'Sell failed');
+      } else {
+        alert('Sell request is taking longer than usual. Please wait and refresh.');
+      }
+    } finally {
+      setSellingId(null);
+    }
+  };
+
+  const handleSeeGraph = (id, ticker) => {
+    alert(`Graph feature coming soon for ${ticker} (ID: ${id})!`);
   }
-};
 
-const handleSeeGraph = (id, ticker) => {
-  alert(`Graph feature coming soon for ${ticker} (ID: ${id})!`);
-}
-
-
-  useEffect(() => {
-    api.getInvestments()
-      .then((res) => {
-        setAllInvestments(res.data);
-        setFilteredInvestments(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
+ useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.getInvestments();
+        if (!mounted) return;
+        setAllInvestments(res.data || []);
+        setFilteredInvestments(res.data || []);
+      } catch (err) {
+        console.error('Failed to load investments', err);
+        if (!mounted) return;
         setError('Failed to load investments');
+      } finally {
+        if (!mounted) return;
         setLoading(false);
-      });
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
- 
-  useEffect(() => {
-    if (!filterField) {
+    useEffect(() => {
+    // reset error
+    setError(null);
+
+    if (filterField === 'all') {
       setFilterOptions([]);
       setFilterValue('');
       return;
     }
 
+    // derive unique values for selected field
     const values = Array.from(
       new Set(
         allInvestments
           .map((inv) => {
             switch (filterField) {
-              case 'id':
-                return inv.id;
               case 'ticker':
                 return inv.ticker;
               case 'sector':
                 return inv.sector;
               case 'type':
-                return inv.assetType;     // ✅ correct
+                return inv.assetType;
               case 'risk':
-                return inv.riskLabel;     // ✅ correct
+                return inv.riskLabel;
               case 'curr':
-                return inv.currency;      // ✅ correct
+                return inv.currency;
               default:
                 return null;
             }
           })
-          .filter((v) => v !== null && v !== undefined)
+          .filter(Boolean)
       )
     );
 
     setFilterOptions(values);
-    setFilterValue('');
+    setFilterValue(''); // force user to actively pick a value
   }, [filterField, allInvestments]);
 
-  useEffect(() => {
-    if (!filterField || !filterValue) {
-      setFilteredInvestments(allInvestments);
-      return;
-    }
+   useEffect(() => {
+    let cancelled = false;
+    let timer = null;
 
-    endpointMap[filterField](filterValue)
-      .then((res) => {
-        setFilteredInvestments(
-          Array.isArray(res.data) ? res.data : [res.data]
-        );
-      })
-      .catch(() => {
+    const runFilter = async () => {
+      setError(null);
+
+      if (filterField === 'all') {
+        setFilteredInvestments(allInvestments);
+        return;
+      }
+
+      // if user has not chosen a value yet, do nothing
+      if (!filterValue) return;
+
+      const apiFn = endpointMap[filterField];
+      if (!apiFn) {
+        console.warn('No API mapping for filterField:', filterField);
+        return;
+      }
+
+      // normalize values expected by backend
+      const normalizedValue =
+        ['risk', 'type', 'curr', 'ticker'].includes(filterField)
+          ? String(filterValue).toUpperCase()
+          : filterValue;
+
+      console.log('Applying filter', { filterField, filterValue, normalizedValue });
+
+      setLoading(true);
+      try {
+        const res = await apiFn(normalizedValue);
+        if (cancelled) return;
+        const payload = res?.data;
+        setFilteredInvestments(Array.isArray(payload) ? payload : [payload]);
+        setError(null);
+      } catch (err) {
+        console.error('Filter error:', err);
+        if (cancelled) return;
         setError('Failed to apply filter');
-      });
+      } finally {
+        if (cancelled) return;
+        setLoading(false);
+      }
+    };
+
+    // debounce to avoid rapid repeated calls
+    timer = setTimeout(runFilter, 200);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [filterField, filterValue, allInvestments]);
+
+   const reloadAll = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.getInvestments();
+      setAllInvestments(res.data || []);
+      setFilteredInvestments(res.data || []);
+    } catch (err) {
+      console.error('Reload failed', err);
+      setError('Failed to reload');
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (
-  <Box sx={{ height: '100%', width: '100%', p: 3 }}>
-    <Grid container spacing={3} sx={{ height: '100%' }}>
-      
-      <Grid item xs={12} md={4} sx={{ width: "35%"}}>
-        <Paper
-          elevation={1}
-          sx={{
-            height: '100%',
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          
-          <Box sx={{ mb: 2, width: '100%' }}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
+    <Box sx={{ height: '100%', width: '100%', p: 3 }}>
+      <Grid container spacing={3} sx={{ height: '100%' }}>
+
+        <Grid item xs={12} md={4} sx={{ width: "35%" }}>
+          <Paper
+            elevation={1}
+            sx={{
+              height: '100%',
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+
+            <Box sx={{ mb: 2, width: '100%' }}>
+
+              <Grid item xs={12} sm={6} sx={{ mb: 2 }}>
                 <TextField
                   select
                   fullWidth
@@ -226,6 +289,10 @@ const handleSeeGraph = (id, ticker) => {
                   label="Filter By"
                   value={filterField}
                   onChange={(e) => setFilterField(e.target.value)}
+                  sx={{
+                    minHeight: 40
+                  }}
+                  InputLabelProps={{ shrink: true }}
                 >
                   {filterFields.map((f) => (
                     <MenuItem key={f.value} value={f.value}>
@@ -235,7 +302,7 @@ const handleSeeGraph = (id, ticker) => {
                 </TextField>
               </Grid>
 
-              <Grid item xs={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   select
                   fullWidth
@@ -244,6 +311,10 @@ const handleSeeGraph = (id, ticker) => {
                   value={filterValue}
                   disabled={!filterField}
                   onChange={(e) => setFilterValue(e.target.value)}
+                  sx={{
+                    minHeight: 40
+                  }}
+                  InputLabelProps={{ shrink: true }}
                 >
                   {filterOptions.map((val) => (
                     <MenuItem key={val} value={val}>
@@ -252,94 +323,151 @@ const handleSeeGraph = (id, ticker) => {
                   ))}
                 </TextField>
               </Grid>
-            </Grid>
-          </Box>
+            </Box>
 
-         
-          <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
-            {loading && (
-              <Stack alignItems="center" mt={3}>
-                <CircularProgress size={24} />
-              </Stack>
-            )}
+            <Box
+              sx={{
+                maxHeight: '70vh',
+                overflowY: 'auto',
+                pr: 1,
+                mt: 1
+              }}
+            >
+              {/* STICKY HEADER */}
+              <Box
+                sx={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1,
+                  backgroundColor: 'background.paper',
+                  pb: 1,
+                  mb: 1,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
+                <Typography variant="subtitle2" color="text.secondary">
+                  Your Investments
+                </Typography>
+              </Box>
 
-            {error && (
-              <Typography color="error">{error}</Typography>
-            )}
+              {/* LOADING */}
+              {loading && (
+                <Stack alignItems="center" mt={4}>
+                  <CircularProgress size={24} />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    mt={1}
+                  >
+                    Loading investments…
+                  </Typography>
+                </Stack>
+              )}
 
-            {!loading &&
-              filteredInvestments.map((inv) => (
-                <Paper
-                  key={inv.id}
-                  variant="outlined"
-                  sx={{
-                    p: 1.5,
-                    mb: 1,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
+              {/* ERROR */}
+              {error && (
+                <Typography color="error" sx={{ mt: 2 }}>
+                  {error}
+                </Typography>
+              )}
+
+              {/* EMPTY STATE */}
+              {!loading && filteredInvestments.length === 0 && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 2 }}
                 >
-                  {/* LEFT INFO */}
-                  <Box>
-                    <Typography variant="subtitle2">
-                      {inv.ticker} ({inv.assetType})
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Qty: {inv.quantity} | {inv.currency} | Risk: {inv.riskLabel}
-                    </Typography>
-                  </Box>
+                  No investments found.
+                </Typography>
+              )}
 
-                  
-                  <Button
-                    size="small"
+              {/* LIST */}
+              {!loading &&
+                filteredInvestments.map((inv) => (
+                  <Paper
+                    key={inv.id}
                     variant="outlined"
-                    color="error"
-                    onClick={() => handleSell(inv.id, inv.ticker, inv.quantity)}
+                    sx={{
+                      p: 1.5,
+                      mb: 1,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderRadius: 1
+                    }}
                   >
-                    Sell
-                  </Button>
+                    {/* LEFT INFO */}
+                    <Box>
+                      <Typography variant="subtitle2">
+                        {inv.ticker} ({inv.assetType})
+                      </Typography>
+
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        Qty: {inv.quantity} • {inv.currency} • Risk: {inv.riskLabel}
+                      </Typography>
+                    </Box>
+
+                    {/* ACTIONS */}
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        onClick={() =>
+                          handleSell(inv.id, inv.ticker, inv.quantity)
+                        }
+                      >
+                        Sell
+                      </Button>
+
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() =>
+                          handleSeeGraph(inv.id, inv.ticker)
+                        }
+                      >
+                        Visualize
+                      </Button>
+                    </Stack>
+                  </Paper>
+                ))}
+            </Box>
 
 
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    size="small"
-                    onClick={() => handleSeeGraph(inv.id, inv.ticker)}
-                  >
-                    seeGraph
-                  </Button>
-                </Paper>
-              ))}
-          </Box>
-        </Paper>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={8} sx={{ width: "55%" }}>
+          <Paper
+            elevation={3}
+            sx={{
+              height: '100%',
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 2,
+              backgroundColor: '#f9f9f9'
+            }}
+          >
+            <Typography variant="h5" color="text.secondary" gutterBottom>
+              Portfolio Analytics
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              (Interactive Graphs will load here based on your portfolio data)
+            </Typography>
+          </Paper>
+        </Grid>
       </Grid>
-
-      <Grid item xs={12} md={8}>
-        <Paper
-          elevation={3}
-          sx={{
-            height: '100%',
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 2,
-            backgroundColor: '#f9f9f9'
-          }}
-        >
-          <Typography variant="h5" color="text.secondary" gutterBottom>
-            Portfolio Analytics
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            (Interactive Graphs will load here based on your portfolio data)
-          </Typography>
-        </Paper>
-      </Grid>
-    </Grid>
-  </Box>
-);
+    </Box>
+  );
 };
 
 export default Dashboard;

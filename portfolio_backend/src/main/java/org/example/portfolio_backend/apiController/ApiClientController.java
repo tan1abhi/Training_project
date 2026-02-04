@@ -220,23 +220,3 @@ public class ApiClientController {
         portfolioService.deleteAllInvestments();
     }
 }
-
-    @PostMapping("/portfolio/analyze-risk")
-    public ResponseEntity<Object> analyzePortfolioRisk(@RequestBody Map<String, Object> payload) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            String jsonInput = mapper.writeValueAsString(payload);
-            ProcessBuilder pb = new ProcessBuilder("python3", "../risk_analysis/risk_analysis.py", jsonInput);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) { output.append(line); }
-            process.waitFor();
-            return ResponseEntity.ok(mapper.readTree(output.toString()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Analysis failed: " + e.getMessage());
-        }
-    }
-}
