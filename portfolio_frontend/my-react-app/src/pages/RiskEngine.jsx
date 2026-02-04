@@ -12,7 +12,7 @@ import {
   Button,
   Dialog,
   DialogTitle,
-  IconButton, 
+  IconButton,
   DialogContent
 } from '@mui/material';
 
@@ -51,7 +51,7 @@ const RiskEngine = () => {
 
   return (
     <Box sx={{ height: '100%', p: 3 }}>
-      <Grid container spacing={3} sx={{ height: '100%'}}>
+      <Grid container spacing={3} sx={{ height: '100%' }}>
 
         <Grid item xs={12} md={4} sx={{ height: '100%', width: '30%', pr: 1 }}>
           <Paper
@@ -63,7 +63,7 @@ const RiskEngine = () => {
               flexDirection: 'column'
             }}
           >
-            
+
             <TextField
               select
               fullWidth
@@ -107,9 +107,9 @@ const RiskEngine = () => {
                   </Typography>
 
                   <Stack spacing={1}>
-                    {riskData.assets_analyzed?.map((symbol) => (
+                    {riskData.per_asset_risk?.map((asset) => (
                       <Paper
-                        key={symbol}
+                        key={asset.ticker}
                         variant="outlined"
                         sx={{
                           p: 1,
@@ -118,40 +118,51 @@ const RiskEngine = () => {
                           alignItems: 'center'
                         }}
                       >
-                        <Typography>{symbol}</Typography>
+                        {/* Left: Ticker */}
+                        <Typography fontWeight={600}>
+                          {asset.ticker}
+                        </Typography>
 
+                        {/* Middle: Risk contribution */}
+                        <Typography color="text.secondary">
+                          Contribution: {(asset.risk_contribution * 100).toFixed(1)}%
+                        </Typography>
+
+                        {/* Right: Risk label */}
                         <Chip
-                          label={riskData.risk_level}
+                          label={asset.risk_label}
                           size="small"
                           color={
-                            riskData.risk_level === 'HIGH'
-                              ? 'error'
-                              : riskData.risk_level === 'MEDIUM'
-                              ? 'warning'
-                              : 'success'
+                            asset.risk_label === "HIGH"
+                              ? "error"
+                              : asset.risk_label === "MEDIUM"
+                                ? "warning"
+                                : "success"
                           }
                         />
                       </Paper>
                     ))}
+
                   </Stack>
                 </>
               )}
             </Box>
 
-     
-           
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={() => setOpenGraphsDialog(true)}
-              >
-                Show Graphs
-              </Button>
+
+
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => setOpenGraphsDialog(true)}
+            >
+              Show Graphs
+            </Button>
+
           </Paper>
         </Grid>
 
 
-        <Grid item xs={12} md={8} sx={{ height: '100%' , width: '65%'}}>
+        <Grid item xs={12} md={8} sx={{ height: '100%', width: '65%' }}>
           <Paper
             elevation={1}
             sx={{
@@ -179,11 +190,11 @@ const RiskEngine = () => {
                       riskData.risk_level === 'HIGH'
                         ? 'error.main'
                         : riskData.risk_level === 'MEDIUM'
-                        ? 'warning.main'
-                        : 'success.main'
+                          ? 'warning.main'
+                          : 'success.main'
                   }}
                 >
-                  {riskData.risk_level}
+                  {riskData.portfolio_risk?.risk_level}
                 </Typography>
 
                 <Typography
@@ -192,7 +203,7 @@ const RiskEngine = () => {
                   mt={2}
                 >
                   Volatility Ratio:{' '}
-                  <strong>{riskData.volatility_ratio}</strong>
+                  <strong>{riskData.portfolio_risk?.volatility_ratio}</strong>
                 </Typography>
 
                 <Typography
@@ -201,7 +212,7 @@ const RiskEngine = () => {
                   mt={3}
                   align="center"
                 >
-                  {riskData.investor_summary}
+                  {riskData.portfolio_risk?.investor_summary}
                 </Typography>
               </>
             )}
