@@ -30,6 +30,11 @@ public class HistoricalDataEntity {
     private Double closePrice;
     private Long volume;
 
+    // ✅ FIXED: Added the variable 'portfolio' and correctly mapped the annotations
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "portfolio_id")
+    private PortfolioEntity portfolio;
+
     // Default Constructor
     public HistoricalDataEntity() {
     }
@@ -117,5 +122,14 @@ public class HistoricalDataEntity {
 
     public void setVolume(Long volume) {
         this.volume = volume;
+    }
+
+    // ✅ FIXED: Added Getter and Setter for Portfolio
+    public PortfolioEntity getPortfolio() {
+        return portfolio;
+    }
+
+    public void setPortfolio(PortfolioEntity portfolio) {
+        this.portfolio = portfolio;
     }
 }

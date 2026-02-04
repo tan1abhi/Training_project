@@ -50,6 +50,11 @@ const SideNav = () => {
             <ListItemText primary="Browse Stocks" />
           </ListItemButton>
         </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/balance">
+            <ListItemText primary="Balance" />
+          </ListItemButton>
+          </ListItem>
       </List>
       <Divider />
       <Box sx={{ flexGrow: 1 }} />
