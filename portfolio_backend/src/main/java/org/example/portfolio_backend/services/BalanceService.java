@@ -36,4 +36,14 @@ public class BalanceService {
         }
         return false;
     }
+
+    // Add this method to BalanceService.java
+    @Transactional
+    public void addFunds(Double amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Amount to add must be positive");
+        }
+        Double newBalance = getCurrentBalance() + amount;
+        balanceRepoWrapper.updateBalance(newBalance);
+    }
 }

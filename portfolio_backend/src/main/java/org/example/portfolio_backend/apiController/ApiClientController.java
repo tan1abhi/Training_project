@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:3000")
 public class ApiClientController {
 
     private final PortfolioApp portfolioService;
@@ -103,6 +104,33 @@ public class ApiClientController {
     @GetMapping("/investments/high-risk")
     public List<DataSender> getHighRiskAlerts() {
         return portfolioService.getHighRiskAlerts();
+    }
+    // Add this endpoint to ApiClientController.java
+
+    @PostMapping("/investment/sell/{id}")
+    public ResponseEntity<?> sellStock(@PathVariable Long id) {
+        try {
+            // 1. Get the ticker for this ID to fetch real-time price
+            DataSender investment = portfolioService.getInvestmentById(id);
+            if (investment == null) return ResponseEntity.notFound().build();
+
+            // 2. Fetch real-time price from Yahoo Finance
+            DataReciever liveData = yFinanceClientService.fetchStockData(investment.getTicker());
+            Double currentMarketPrice = liveData.getLatestPrice();
+
+            if (currentMarketPrice == null || currentMarketPrice <= 0) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body("Could not retrieve real-time market price.");
+            }
+
+            // 3. Execute the sell logic in the service
+            Map<String, Object> result = portfolioService.sellInvestment(id, currentMarketPrice);
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Sell transaction failed: " + e.getMessage());
+        }
     }
 
     @PostMapping("/investment/addnew")

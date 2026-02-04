@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Grid, Paper, Typography } from '@mui/material';
+import { Box, Grid, List, ListItem, Paper, Typography } from '@mui/material';
 
 const BrowseStocks = () => {
   return (
@@ -17,7 +17,7 @@ const BrowseStocks = () => {
     sx={{ height: '100%', width: '100%' }}
   >
     {/* LEFT SECTION — 30% (Stock List) */}
-    <Grid item xs={12} md={4} sx={{ height: '100%', width : '25%' }}>
+    <Grid item xs={12} md={4} sx={{ height: '100%', width : '45%' }}>
       <Paper
         elevation={1}
         sx={{
@@ -37,11 +37,17 @@ const BrowseStocks = () => {
             Stock list placeholder
           </Typography>
         </Box>
+
+        <List>
+          <ListItem>Stock 1</ListItem>
+          <ListItem>Stock 2</ListItem>
+          <ListItem>Stock 3</ListItem>
+        </List>
       </Paper>
     </Grid>
 
     {/* RIGHT SECTION — 70% */}
-    <Grid item xs={12} md={8} sx={{ height: '100%' , width : '65%' }}>
+    <Grid item xs={12} md={8} sx={{ height: '100%' , width : '45%' }}>
       <Box
         sx={{
           height: '100%',

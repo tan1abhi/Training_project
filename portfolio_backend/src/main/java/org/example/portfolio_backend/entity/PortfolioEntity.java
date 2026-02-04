@@ -3,6 +3,7 @@ package org.example.portfolio_backend.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "portfolio_items")
@@ -46,6 +47,10 @@ public class PortfolioEntity {
 
     @Column(length = 500)
     private String notes;
+    // Inside PortfolioEntity.java
+
+    @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<HistoricalDataEntity> historicalPrices;
 
     public PortfolioEntity() {
     }
