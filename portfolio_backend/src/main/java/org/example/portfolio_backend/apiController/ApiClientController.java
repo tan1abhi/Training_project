@@ -180,6 +180,7 @@ public class ApiClientController {
         DataSender dto = buildDataSender(ticker, newInvestment.getQuantity(), newInvestment.getNotes(), newInvestment.getTargetSellPrice(), fetchedData);
 
         if (portfolioService.attemptPurchase(dto)) {
+            yFinanceClientService.saveFetchedHistoricalData(ticker, fetchedData);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status", "success", "ticker", ticker));
         } else {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Insufficient Balance"));

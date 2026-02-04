@@ -52,7 +52,10 @@ export const api = {
     // POST /portfolio/analyze-risk
     analyzeRisk: (portfolioData) => apiClient.post('/portfolio/analyze-risk', portfolioData),
 
-    sellStock: (id) => apiClient.post(`/investment/sell/${id}`),
+    sellStock: (id, quantity) =>
+        apiClient.post(`/investment/sell/${id}`, null, {
+            params: { quantity }
+        }),
 
     getBrowseStocks: () => apiClient.get('/market/stocks')
 };

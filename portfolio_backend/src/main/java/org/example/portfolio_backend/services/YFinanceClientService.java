@@ -58,7 +58,6 @@ public class YFinanceClientService {
             return;
         }
 
-        // 1️⃣ Find parent portfolio entity
         PortfolioEntity parent = portfolioRepoWrapper.getAllItems().stream()
                 .filter(item -> item.getTicker().equalsIgnoreCase(ticker))
                 .findFirst()
@@ -69,13 +68,11 @@ public class YFinanceClientService {
             return;
         }
 
-        // 2️⃣ Fetch existing history dates for this ticker
         Set<LocalDate> existingDates = historicalRepoWrapper.findByTicker(ticker)
                 .stream()
                 .map(HistoricalDataEntity::getPriceDate)
                 .collect(Collectors.toSet());
 
-        // 3️⃣ Map ONLY new historical entries
         List<HistoricalDataEntity> entities = fetchedData.getHistoricalData().stream()
                 .filter(data -> {
                     LocalDate date = LocalDate.parse(data.getDate());
@@ -94,7 +91,6 @@ public class YFinanceClientService {
                 })
                 .collect(Collectors.toList());
 
-        // 4️⃣ Persist only if new data exists
         if (entities.isEmpty()) {
             System.out.println("No new historical data to insert for " + ticker);
             return;

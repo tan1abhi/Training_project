@@ -70,7 +70,7 @@ const Balance = () => {
   return (
     <Card elevation={3} sx={{ maxWidth: 420 }}>
       <CardContent>
-        {/* <BalanceGauge balance={balance} /> */}
+    
         <Typography variant="caption" color="text.secondary">
           Available Balance
         </Typography>

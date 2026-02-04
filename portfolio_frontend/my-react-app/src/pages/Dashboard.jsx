@@ -40,6 +40,8 @@ const Dashboard = () => {
   const [filterValue, setFilterValue] = useState('');
   const [filterOptions, setFilterOptions] = useState([]);
   const [error, setError] = useState(null);
+  const [sellingId, setSellingId] = useState(null);
+
 
   
   const loadPortfolio = async () => {
@@ -58,39 +60,71 @@ const Dashboard = () => {
     loadPortfolio();
   }, []);
 
-  const removeInvestmentFromState = (id) => {
-  setInvestments(prev => prev.filter(inv => inv.id !== id));
-  setAllInvestments(prev => prev.filter(inv => inv.id !== id));
-  setFilteredInvestments(prev => prev.filter(inv => inv.id !== id));
-  };
-  
-  const handleSell = async (id, ticker) => {
+  const removeInvestmentFromState = (id, soldQty) => {
+  setFilteredInvestments((prev) =>
+    prev
+      .map((inv) =>
+        inv.id === id
+          ? { ...inv, quantity: inv.quantity - soldQty }
+          : inv
+      )
+      .filter((inv) => inv.quantity > 0)
+  );
+};
+
+
+  const handleSell = async (id, ticker, maxQuantity) => {
+  if (sellingId === id) return;
+
+  const quantity = window.prompt(
+    `Enter quantity to sell (max ${maxQuantity}):`,
+    maxQuantity
+  );
+
+  if (!quantity) return;
+
+  const qty = Number(quantity);
+
+  if (!Number.isInteger(qty) || qty <= 0 || qty > maxQuantity) {
+    alert('Invalid quantity');
+    return;
+  }
+
   const confirmSell = window.confirm(
-    `Are you sure you want to sell your ${ticker} shares at current market price?`
+    `Are you sure you want to sell ${qty} shares of ${ticker} at current market price?`
   );
 
   if (!confirmSell) return;
 
   try {
-    const response = await api.sellStock(id);
-    const { sellValue, profitPercentage } = response.data;
+    setSellingId(id);
+
+    const response = await api.sellStock(id, qty);
+
+    const { sellValue, profitPercentage } = response.data || {};
+    console.log('Sell response data:', response.data);
+
+    removeInvestmentFromState(id, qty);
+
+    window.dispatchEvent(new Event('balanceUpdated'));
 
     alert(
       `Transaction Successful!\n` +
       `Sold: ${ticker}\n` +
-      `Received: $${sellValue.toFixed(2)}\n` +
-      `Profit/Loss: ${profitPercentage.toFixed(2)}%`
+      `Quantity: ${qty}\n` +
+      `Received: $${Number(sellValue).toFixed(2)}\n` +
+      `Profit/Loss: ${Number(profitPercentage).toFixed(2)}%`
     );
-
-   
-    removeInvestmentFromState(id);
-
-   
-    window.dispatchEvent(new Event('balanceUpdated'));
-
   } catch (error) {
-    console.error("Sell error:", error);
-    alert("Failed to complete the sale. Is the Python bridge running?");
+    console.error('Sell error:', error);
+
+    if (error.response) {
+      alert(error.response.data || 'Sell failed');
+    } else {
+      alert('Sell request is taking longer than usual. Please wait and refresh.');
+    }
+  } finally {
+    setSellingId(null);
   }
 };
 
@@ -258,13 +292,14 @@ const handleSeeGraph = (id, ticker) => {
 
                   
                   <Button
+                    size="small"
                     variant="outlined"
                     color="error"
-                    size="small"
-                    onClick={() => handleSell(inv.id, inv.ticker)}
+                    onClick={() => handleSell(inv.id, inv.ticker, inv.quantity)}
                   >
                     Sell
                   </Button>
+
 
                   <Button
                     variant="outlined"

@@ -8,8 +8,15 @@ import {
   ListItem,
   Button,
   Divider,
-  TextField
+  TextField,
+   Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
+
 
 import { api } from '../services/api'; 
 
@@ -20,6 +27,10 @@ const BrowseStocks = () => {
   const [investments, setInvestments] = useState([]);
   const [allInvestments, setAllInvestments] = useState([]);
   const [filteredInvestments, setFilteredInvestments] = useState([]);
+  const [openBuyDialog, setOpenBuyDialog] = useState(false);
+  const [selectedPrice, setSelectedPrice] = useState(null);
+
+
 
   const [mockStocks, setMockStocks] = useState([]);
 
@@ -65,12 +76,15 @@ const BrowseStocks = () => {
     }
   };
 
-  const handleQuickBuyClick = (ticker) => {
+  const handleQuickBuyClick = (ticker, price) => {
     setBuyForm((prev) => ({
       ...prev,
       ticker: ticker.toUpperCase()
     }));
+    setSelectedPrice(price);
+    setOpenBuyDialog(true);
   };
+
 
   const handleBuyStock = async () => {
     if (!buyForm.ticker || !buyForm.quantity) {
@@ -101,6 +115,7 @@ const BrowseStocks = () => {
       });
 
       loadPortfolio();
+      setOpenBuyDialog(false);
     } catch (error) {
       console.error('Buy error:', error);
       alert(error.response?.data?.message || 'Failed to buy stock');
@@ -109,11 +124,16 @@ const BrowseStocks = () => {
     }
   };
 
-  const filteredStocks = mockStocks.filter(
-    (stock) =>
-      stock.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      stock.ticker.toLowerCase().includes(search.toLowerCase())
+  const filteredStocks = mockStocks.filter((stock) => {
+  const q = search.trim().toLowerCase();
+  if (!q) return true;
+
+  return (
+    stock.companyName.toLowerCase().includes(q) ||
+    stock.ticker.toLowerCase().includes(q)
   );
+});
+
   return (
     <Box
       sx={{
@@ -123,9 +143,9 @@ const BrowseStocks = () => {
         boxSizing: 'border-box'
       }}
     >
-      <Grid container spacing={3} sx={{ height: '100%' }}>
+    <Grid container spacing={3} sx={{ height: '100%' }}>
     
-        <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+        <Grid item xs={12} md={4} sx={{ height: '100%', width: '95%' }}>
           <Paper
             elevation={1}
             sx={{
@@ -188,81 +208,93 @@ const BrowseStocks = () => {
                   </Typography>
                 )}
 
-                {mockStocks.map((stock) => (
-  <ListItem
-    key={stock.id}
-    sx={{
-      px: 2,
-      py: 1,
-      display: 'grid',
-      gridTemplateColumns: '2fr 1fr 1fr 2fr 1fr',
-      alignItems: 'center'
-    }}
-  >
-    <Typography variant="body2">
-      {stock.companyName}
-    </Typography>
+                {filteredStocks.map((stock) => (
+                  <ListItem
+                    key={stock.id}
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 1fr 1fr 2fr 1fr',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Typography variant="body2">
+                      {stock.companyName}
+                    </Typography>
 
-    <Typography variant="body2">
-      {stock.ticker}
-    </Typography>
+                    <Typography variant="body2">
+                      {stock.ticker}
+                    </Typography>
 
-    <Typography variant="body2">
-      ${Number(stock.currentPrice).toFixed(2)}
-    </Typography>
+                    <Typography variant="body2">
+                      ${Number(stock.currentPrice).toFixed(2)}
+                    </Typography>
 
-    <Typography variant="body2" color="text.secondary">
-      {stock.sector}
-    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {stock.sector}
+                    </Typography>
 
-    <Button
-      size="small"
-      variant="outlined"
-      color="primary"
-      onClick={() => handleQuickBuyClick(stock.ticker)}
-    >
-      Buy
-    </Button>
-  </ListItem>
-))}
+                    <Button
+                      size="small"
+                      color="primary"
+                      variant="contained"
+
+                      onClick={() => handleQuickBuyClick(stock.ticker,  stock.currentPrice)}
+                    >
+                      Buy
+                    </Button>
+                  </ListItem>
+                ))}
 
                 </List>
               </Box>  
           </Paper>
         </Grid>
-  
-    <Grid item xs={12} md={8} sx={{ height: '100%' , width : '45%' }}>
+    </Grid>
+
+    <Dialog
+    open={openBuyDialog}
+    onClose={() => setOpenBuyDialog(false)}
+    maxWidth="sm"
+    fullWidth
+  >
+    <DialogTitle
+    sx={{
+      m: 0,
+      p: 2,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }}
+  >
+    <Box>
+      <Typography variant="h6">Buy Stock</Typography>
+      {selectedPrice !== null && (
+        <Typography variant="caption" color="text.secondary">
+          Current Price: ${Number(selectedPrice).toFixed(2)}
+        </Typography>
+      )}
+    </Box>
+
+    <IconButton
+      aria-label="close"
+      onClick={() => setOpenBuyDialog(false)}
+      sx={{ color: 'grey.500' }}
+    >
+      <CloseIcon />
+    </IconButton>
+  </DialogTitle>
+
+    <DialogContent dividers>
       <Box
         sx={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2
-        }}
-      >
-       
-      <Paper
-        elevation={1}
-        sx={{
-        flexGrow: 7,
-        p: 2,
-        display: 'flex',
-        flexDirection: 'column'
-        }}
-        >
-        <Typography variant="h6" gutterBottom>
-        Buy / Add Stock
-        </Typography>
-
-        <Box
-        sx={{
-          mt: 2,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 2
+          gap: 2,
+          mt: 1
         }}
-        >
-        {/* TICKER */}
+      >
         <TextField
           label="Ticker ID"
           name="ticker"
@@ -285,7 +317,6 @@ const BrowseStocks = () => {
           onChange={handleBuyChange}
         />
 
-       
         <TextField
           label="Target Sell Price"
           name="targetSellPrice"
@@ -297,7 +328,6 @@ const BrowseStocks = () => {
           onChange={handleBuyChange}
         />
 
-        
         <TextField
           label="Notes"
           name="notes"
@@ -309,37 +339,27 @@ const BrowseStocks = () => {
           value={buyForm.notes}
           onChange={handleBuyChange}
         />
-
-        
-        <Box sx={{ gridColumn: '1 / -1', textAlign: 'right', mt: 1 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleBuyStock}
-            disabled={buyLoading}
-          >
-            {buyLoading ? 'Buying...' : 'Buy Stock'}
-          </Button>
-        </Box>
-        </Box>
-      </Paper>
-
-
-
-        <Paper
-          elevation={1}
-          sx={{
-            flexGrow: 3,
-            p: 2
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            remove stocks
-          </Typography>
-        </Paper>
       </Box>
-    </Grid>
-  </Grid>
+    </DialogContent>
+
+    <DialogActions>
+      <Button
+        onClick={() => setOpenBuyDialog(false)}
+        disabled={buyLoading}
+      >
+        Cancel
+      </Button>
+
+      <Button
+        variant="contained"
+        onClick={handleBuyStock}
+        disabled={buyLoading}
+      >
+        {buyLoading ? 'Buying...' : 'Buy Stock'}
+      </Button>
+    </DialogActions>
+  </Dialog>
+
 </Box>
 
   );
