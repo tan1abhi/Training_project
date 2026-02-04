@@ -22,11 +22,7 @@ const TopBar = () => {
   useEffect(() => {
     
     fetchCurrentBalance();
-
-   
     window.addEventListener('balanceUpdated', fetchCurrentBalance);
-
-   
     const interval = setInterval(fetchCurrentBalance, 15000);
 
     

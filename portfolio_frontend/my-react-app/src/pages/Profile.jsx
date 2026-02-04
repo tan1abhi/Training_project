@@ -20,10 +20,10 @@ const Profile = () => {
             U
           </Avatar>
           <Typography variant="h5" component="div" gutterBottom>
-            John Doe
+            Sumit 
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            john.doe@example.com
+            Email: abhishek@example.com
           </Typography>
         </CardContent>
       </Card>
