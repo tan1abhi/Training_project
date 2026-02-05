@@ -32,7 +32,6 @@ const Profile = () => {
       >
         <CardContent sx={{ p: 4 }}>
           <Grid container spacing={4} alignItems="center">
-            {/* LEFT: PROFILE IDENTITY */}
             <Grid item xs={12} md={3}>
               <Box
                 sx={{
@@ -79,19 +78,19 @@ const Profile = () => {
               </Box>
             </Grid>
 
-            {/* VERTICAL DIVIDER */}
+         
             <Grid item xs={12} md={1}>
               <Divider orientation="vertical" flexItem />
             </Grid>
 
-            {/* RIGHT: PROFILE DETAILS */}
+            
             <Grid item xs={12} md={8}>
               <Grid container spacing={3}>
                 {[
-                  { label: 'Full Name', value: 'Sumit Kumar' },
-                  { label: 'Email', value: 'abhishek@example.com' },
-                  { label: 'Username', value: 'sumit_01' },
-                  { label: 'Phone', value: '+91 98765 43210' },
+                  { label: 'Full Name', value: 'Sumeet' },
+                  { label: 'Email', value: 'Sumeet@example.com' },
+                  { label: 'Username', value: 'Sumeet_01' },
+                  { label: 'Phone', value: '+91 98765 xxxxx' },
                   { label: 'Account Type', value: 'Individual' },
                   { label: 'Preferred Currency', value: 'USD' }
                 ].map((item) => (
@@ -112,7 +111,7 @@ const Profile = () => {
                   </Grid>
                 ))}
 
-                {/* BIO */}
+               
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
                   <Typography
