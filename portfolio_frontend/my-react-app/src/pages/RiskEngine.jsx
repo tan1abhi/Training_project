@@ -16,6 +16,7 @@ import {
   DialogContent
 } from '@mui/material';
 
+import RiskGraph from "../components/RiskGraph";
 import CloseIcon from '@mui/icons-material/Close';
 
 const RiskEngine = () => {
@@ -30,7 +31,7 @@ const RiskEngine = () => {
     const fetchRiskData = () => {
       fetch('http://localhost:4000/api/portfolio/risk')
         .then((res) => {
-          if (!res.ok) throw new Error('Failed to fetch risk data');
+          if (!res.ok) throw new "";
           return res.json();
         })
         .then((data) => {
@@ -247,22 +248,20 @@ const RiskEngine = () => {
           </IconButton>
         </DialogTitle>
 
-        <DialogContent dividers>
-          <Box
-            sx={{
-              height: 400,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <Typography color="text.secondary">
-              Graphs will be rendered here
-            </Typography>
+        <DialogContent
+          dividers
+          sx={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            p: 0
+          }}
+        >
+          <Box sx={{ width: "100%" }}>
+            <RiskGraph riskData={riskData} />
           </Box>
         </DialogContent>
-      </Dialog>
 
+      </Dialog>
     </Box>
   );
 };

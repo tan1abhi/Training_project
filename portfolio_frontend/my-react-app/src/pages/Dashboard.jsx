@@ -17,6 +17,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import { api } from '../services/api';
 import PortfolioPieChart from '../components/PortfolioPieChart';
 import StockPriceChart from '../components/StockPriceChart';
+import SellConfirmDialog from '../components/SellConfirmDialog';
+import SellQuantityDialog from '../components/SellQuantityDialog';
+import { Snackbar, Alert } from '@mui/material';
+
 
 const filterFields = [
   { label: 'Ticker', value: 'ticker' },
@@ -51,6 +55,18 @@ const Dashboard = () => {
   const [portfolioData, setPortfolioData] = useState([]);
 
   const [openChart, setOpenChart] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingSell, setPendingSell] = useState(null);
+
+  const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+
+
 
   const toggleGraphOn = (id, ticker) => {
     setSymbol(ticker);
@@ -107,61 +123,62 @@ const Dashboard = () => {
     );
   };
 
+const handleSell = (id, ticker, maxQuantity) => {
+  if (sellingId === id) return;
 
-  const handleSell = async (id, ticker, maxQuantity) => {
-    if (sellingId === id) return;
+  setPendingSell({
+    id,
+    ticker,
+    maxQuantity
+  });
 
-    const quantity = window.prompt(
-      `Enter quantity to sell (max ${maxQuantity}):`,
-      maxQuantity
-    );
+  setQuantityDialogOpen(true);
+};
 
-    if (!quantity) return;
 
-    const qty = Number(quantity);
+const handleQuantityNext = (qty) => {
+  setPendingSell(prev => ({ ...prev, qty }));
+  setQuantityDialogOpen(false);
+  setConfirmOpen(true);
+};
 
-    if (!Number.isInteger(qty) || qty <= 0 || qty > maxQuantity) {
-      alert('Invalid quantity');
-      return;
-    }
 
-    const confirmSell = window.confirm(
-      `Are you sure you want to sell ${qty} shares of ${ticker} at current market price?`
-    );
+const confirmSell = async () => {
+  const { id, ticker, qty } = pendingSell;
 
-    if (!confirmSell) return;
+  try {
+    setSellingId(id);
 
-    try {
-      setSellingId(id);
+    const response = await api.sellStock(id, qty);
+    const { sellValue, profitPercentage } = response.data || {};
 
-      const response = await api.sellStock(id, qty);
+    removeInvestmentFromState(id, qty);
+    window.dispatchEvent(new Event('balanceUpdated'));
 
-      const { sellValue, profitPercentage } = response.data || {};
-      console.log('Sell response data:', response.data);
+   setToast({
+  open: true,
+  severity: 'success',
+  message: (
+    <>
+      <div><b>Transaction Successful</b></div>
+      <div>Sold: {ticker}</div>
+      <div>Quantity: {qty}</div>
+      <div>Received: ${Number(sellValue).toFixed(2)}</div>
+      {/* <div>Profit/Loss: {Number(profitPercentage).toFixed(2)}%</div> */}
+    </>
+  )
+});
 
-      removeInvestmentFromState(id, qty);
+  } catch (error) {
+    console.error('Sell error:', error);
+    alert(error.response?.data || 'Sell failed');
+  } finally {
+    setSellingId(null);
+    setConfirmOpen(false);
+    setPendingSell(null);
+  }
+};
 
-      window.dispatchEvent(new Event('balanceUpdated'));
-
-      alert(
-        `Transaction Successful!\n` +
-        `Sold: ${ticker}\n` +
-        `Quantity: ${qty}\n` +
-        `Received: $${Number(sellValue).toFixed(2)}\n` +
-        `Profit/Loss: ${Number(profitPercentage).toFixed(2)}%`
-      );
-    } catch (error) {
-      console.error('Sell error:', error);
-
-      if (error.response) {
-        alert(error.response.data || 'Sell failed');
-      } else {
-        alert('Sell request is taking longer than usual. Please wait and refresh.');
-      }
-    } finally {
-      setSellingId(null);
-    }
-  };
 
   const handleSeeGraph = (ticker) => {
     setSymbol(ticker);
@@ -318,7 +335,7 @@ const Dashboard = () => {
 
             <Box sx={{ mb: 2, width: '100%' }}>
 
-              <Grid item xs={12} sm={6} sx={{ mb: 2 }}>
+              {/* <Grid item xs={12} sm={6} sx={{ mb: 2 }}>
                 <TextField
                   select
                   fullWidth
@@ -359,7 +376,7 @@ const Dashboard = () => {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
+              </Grid> */}
             </Box>
 
             <Box
@@ -501,7 +518,7 @@ const Dashboard = () => {
               gutterBottom
               align="center"
             >
-              Portfolio Risk Distribution
+              Portfolio Distribution
             </Typography>
 
           
@@ -542,6 +559,39 @@ const Dashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <SellQuantityDialog
+        open={quantityDialogOpen}
+        data={pendingSell}
+        onClose={() => setQuantityDialogOpen(false)}
+        onNext={handleQuantityNext}
+      />
+
+
+      <SellConfirmDialog
+        open={confirmOpen}
+        data={pendingSell}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmSell}
+      />
+
+      <Snackbar
+  open={toast.open}
+  autoHideDuration={5000}
+  onClose={() => setToast(prev => ({ ...prev, open: false }))}
+  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+>
+  <Alert
+    onClose={() => setToast(prev => ({ ...prev, open: false }))}
+    severity={toast.severity}
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    {toast.message}
+  </Alert>
+</Snackbar>
+
+
 
     </Box>
   );

@@ -22,7 +22,7 @@ const TopBar = () => {
     
     fetchCurrentBalance();
     window.addEventListener('balanceUpdated', fetchCurrentBalance);
-    const interval = setInterval(fetchCurrentBalance, 15000);
+    const interval = setInterval(fetchCurrentBalance, 500);
 
     
     return () => {

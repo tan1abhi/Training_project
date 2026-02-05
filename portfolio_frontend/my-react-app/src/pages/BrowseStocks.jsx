@@ -29,6 +29,12 @@ const BrowseStocks = () => {
   const [filteredInvestments, setFilteredInvestments] = useState([]);
   const [openBuyDialog, setOpenBuyDialog] = useState(false);
   const [selectedPrice, setSelectedPrice] = useState(null);
+  const [toast, setToast] = useState({
+  open: false,
+  message: '',
+  severity: 'success'
+});
+
 
 
 
@@ -88,7 +94,11 @@ const BrowseStocks = () => {
 
   const handleBuyStock = async () => {
     if (!buyForm.ticker || !buyForm.quantity) {
-      alert('Ticker and Quantity are required');
+      setToast({
+        open: true,
+        severity: 'warning',
+        message: 'Ticker and Quantity are required'
+      });
       return;
     }
 
@@ -105,7 +115,18 @@ const BrowseStocks = () => {
       setBuyLoading(true);
       await api.addInvestment(payload);
 
-      alert(`Successfully bought ${payload.quantity} shares of ${payload.ticker}`);
+     setToast({
+        open: true,
+        severity: 'success',
+        message: (
+          <>
+            <div><b>Purchase Successful</b></div>
+            <div>Ticker: {payload.ticker}</div>
+            <div>Quantity: {payload.quantity}</div>
+          </>
+        )
+      });
+
 
       setBuyForm({
         ticker: '',
@@ -118,7 +139,12 @@ const BrowseStocks = () => {
       setOpenBuyDialog(false);
     } catch (error) {
       console.error('Buy error:', error);
-      alert(error.response?.data?.message || 'Failed to buy stock');
+      setToast({
+        open: true,
+        severity: 'error',
+        message: error.response?.data?.message || 'Failed to buy stock'
+      });
+
     } finally {
       setBuyLoading(false);
     }
@@ -359,6 +385,23 @@ const BrowseStocks = () => {
       </Button>
     </DialogActions>
   </Dialog>
+
+  <Snackbar
+  open={toast.open}
+  autoHideDuration={4000}
+  onClose={() => setToast(prev => ({ ...prev, open: false }))}
+  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+>
+  <Alert
+    onClose={() => setToast(prev => ({ ...prev, open: false }))}
+    severity={toast.severity}
+    variant="filled"
+    sx={{ width: '100%' }}
+  >
+    {toast.message}
+  </Alert>
+</Snackbar>
+
 
 </Box>
 
