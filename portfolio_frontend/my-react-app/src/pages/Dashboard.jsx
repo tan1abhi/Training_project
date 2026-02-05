@@ -13,10 +13,17 @@ import {
   Dialog, DialogTitle, DialogContent, IconButton
 } from '@mui/material';
 import CloseIcon from "@mui/icons-material/Close";
+import SectorAllocationChart from "../components/SectorAllocationChart";
+import StockValueBarChart from "../components/StockValueBarChart";
+
 
 import { api } from '../services/api';
 import PortfolioPieChart from '../components/PortfolioPieChart';
 import StockPriceChart from '../components/StockPriceChart';
+import SellConfirmDialog from '../components/SellConfirmDialog';
+import SellQuantityDialog from '../components/SellQuantityDialog';
+import { Snackbar, Alert } from '@mui/material';
+
 
 const filterFields = [
   { label: 'Ticker', value: 'ticker' },
@@ -51,6 +58,35 @@ const Dashboard = () => {
   const [portfolioData, setPortfolioData] = useState([]);
 
   const [openChart, setOpenChart] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingSell, setPendingSell] = useState(null);
+  const [sectorData, setSectorData] = useState([]);
+  const [riskData, setRiskData] = useState([]);
+  const [search, setSearch] = useState('');
+
+
+  const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  const [mockStocks, setMockStocks] = useState([]);
+
+  useEffect(() => {
+    const fetchStocks = async () => {
+      try {
+        const res = await api.getBrowseStocks();
+        setMockStocks(res.data);
+      } catch (error) {
+        console.error('Failed to fetch stocks', error);
+      }
+    };
+
+    fetchStocks();
+  }, []);
+
 
   const toggleGraphOn = (id, ticker) => {
     setSymbol(ticker);
@@ -67,15 +103,49 @@ const Dashboard = () => {
   const loadPortfolio = async () => {
     try {
       setLoading(true);
-      const response = await api.getInvestments();
-      setInvestments(response.data);
-      const formattedForPie = response.data.map((item) => ({
-        stock: item.ticker,
-        amount: item.quantity * (item.buyPrice || 100),
-      }));
-      setPortfolioData(formattedForPie);
 
-      setLoading(false);
+      const response = await api.getInvestments();
+      const data = response.data;
+
+      setInvestments(data);
+
+
+      const stockData = data.map((item) => ({
+        stock: item.ticker,
+        amount: item.quantity * (item.buyPrice || 0),
+      }));
+      setPortfolioData(stockData);
+
+
+      const sectorMap = {};
+      data.forEach((item) => {
+        const value = item.quantity * (item.buyPrice || 0);
+        sectorMap[item.sector] = (sectorMap[item.sector] || 0) + value;
+      });
+
+      const formattedSectorData = Object.entries(sectorMap).map(
+        ([sector, amount]) => ({
+          stock: sector,
+          amount,
+        })
+      );
+      setSectorData(formattedSectorData);
+
+
+      const riskMap = {};
+      data.forEach((item) => {
+        const value = item.quantity * (item.buyPrice || 0);
+        riskMap[item.riskLabel] = (riskMap[item.riskLabel] || 0) + value;
+      });
+
+      const formattedRiskData = Object.entries(riskMap).map(
+        ([risk, amount]) => ({
+          stock: risk,
+          amount,
+        })
+      );
+      setRiskData(formattedRiskData);
+
     } catch (error) {
       console.error("Failed to fetch investments:", error);
     } finally {
@@ -87,13 +157,37 @@ const Dashboard = () => {
     loadPortfolio();
   }, []);
 
-  // 2. Fetch Historical Data for Line Chart whenever symbol changes
+
+  useEffect(() => {
+    const loadInvestments = async () => {
+      try {
+        const response = await api.getInvestments();
+        setInvestments(response.data);
+      } catch (error) {
+        console.error('Investments fetch error:', error);
+        setInvestments([]);
+      }
+    };
+
+    loadInvestments();
+  }, []);
+
+  const stockMap = React.useMemo(() => {
+    return mockStocks.reduce((acc, stock) => {
+      acc[stock.ticker] = stock.companyName;
+      return acc;
+    }, {});
+  }, [mockStocks]);
+
+
+
   useEffect(() => {
     fetch(`http://localhost:8080/market/history/${symbol}`)
       .then((res) => res.ok ? res.json() : [])
       .then((data) => setStockData(data))
       .catch((err) => console.error("Stock data fetch error:", err));
   }, [symbol]);
+
 
   const removeInvestmentFromState = (id, soldQty) => {
     setFilteredInvestments((prev) =>
@@ -108,60 +202,90 @@ const Dashboard = () => {
   };
 
 
-  const handleSell = async (id, ticker, maxQuantity) => {
+
+  const handleSell = (id, ticker, maxQuantity) => {
     if (sellingId === id) return;
 
-    const quantity = window.prompt(
-      `Enter quantity to sell (max ${maxQuantity}):`,
+    setPendingSell({
+      id,
+      ticker,
       maxQuantity
+    });
+
+    setQuantityDialogOpen(true);
+  };
+
+  const filteredInvestmentsSearch = React.useMemo(() => {
+    if (!search.trim()) return investments;
+
+    const query = search.toLowerCase();
+
+    return investments.filter(inv => {
+      const tickerMatch = inv.ticker.toLowerCase().includes(query);
+      const companyMatch = (stockMap[inv.ticker] || '')
+        .toLowerCase()
+        .includes(query);
+
+      return tickerMatch || companyMatch;
+    });
+  }, [search, investments, stockMap]);
+
+
+
+  const handleQuantityNext = (qty) => {
+    setPendingSell(prev => ({ ...prev, qty }));
+    setQuantityDialogOpen(false);
+    setConfirmOpen(true);
+  };
+
+
+  const confirmSell = async () => {
+    const { id, ticker, qty } = pendingSell;
+
+    setInvestments(prev =>
+      prev
+        .map(inv =>
+          inv.id === id
+            ? { ...inv, quantity: inv.quantity - qty }
+            : inv
+        )
+        .filter(inv => inv.quantity > 0)
     );
 
-    if (!quantity) return;
-
-    const qty = Number(quantity);
-
-    if (!Number.isInteger(qty) || qty <= 0 || qty > maxQuantity) {
-      alert('Invalid quantity');
-      return;
-    }
-
-    const confirmSell = window.confirm(
-      `Are you sure you want to sell ${qty} shares of ${ticker} at current market price?`
-    );
-
-    if (!confirmSell) return;
 
     try {
       setSellingId(id);
 
       const response = await api.sellStock(id, qty);
-
       const { sellValue, profitPercentage } = response.data || {};
-      console.log('Sell response data:', response.data);
 
       removeInvestmentFromState(id, qty);
-
       window.dispatchEvent(new Event('balanceUpdated'));
 
-      alert(
-        `Transaction Successful!\n` +
-        `Sold: ${ticker}\n` +
-        `Quantity: ${qty}\n` +
-        `Received: $${Number(sellValue).toFixed(2)}\n` +
-        `Profit/Loss: ${Number(profitPercentage).toFixed(2)}%`
-      );
+      setToast({
+        open: true,
+        severity: 'success',
+        message: (
+          <>
+            <div><b>Transaction Successful</b></div>
+            <div>Sold: {ticker}</div>
+            <div>Quantity: {qty}</div>
+            <div>Received: ${Number(sellValue).toFixed(2)}</div>
+            {/* <div>Profit/Loss: {Number(profitPercentage).toFixed(2)}%</div> */}
+          </>
+        )
+      });
+
     } catch (error) {
       console.error('Sell error:', error);
-
-      if (error.response) {
-        alert(error.response.data || 'Sell failed');
-      } else {
-        alert('Sell request is taking longer than usual. Please wait and refresh.');
-      }
+      alert(error.response?.data || 'Sell failed');
     } finally {
       setSellingId(null);
+      setConfirmOpen(false);
+      setPendingSell(null);
     }
   };
+
 
   const handleSeeGraph = (ticker) => {
     setSymbol(ticker);
@@ -193,7 +317,7 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    // reset error
+
     setError(null);
 
     if (filterField === 'all') {
@@ -202,7 +326,7 @@ const Dashboard = () => {
       return;
     }
 
-    // derive unique values for selected field
+
     const values = Array.from(
       new Set(
         allInvestments
@@ -227,7 +351,7 @@ const Dashboard = () => {
     );
 
     setFilterOptions(values);
-    setFilterValue(''); // force user to actively pick a value
+    setFilterValue('');
   }, [filterField, allInvestments]);
 
   useEffect(() => {
@@ -242,7 +366,7 @@ const Dashboard = () => {
         return;
       }
 
-      // if user has not chosen a value yet, do nothing
+
       if (!filterValue) return;
 
       const apiFn = endpointMap[filterField];
@@ -251,7 +375,7 @@ const Dashboard = () => {
         return;
       }
 
-      // normalize values expected by backend
+
       const normalizedValue =
         ['risk', 'type', 'curr', 'ticker'].includes(filterField)
           ? String(filterValue).toUpperCase()
@@ -276,7 +400,7 @@ const Dashboard = () => {
       }
     };
 
-    // debounce to avoid rapid repeated calls
+
     timer = setTimeout(runFilter, 200);
 
     return () => {
@@ -300,12 +424,22 @@ const Dashboard = () => {
     }
   };
 
+  const filteredStocks = mockStocks.filter((stock) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+
+    return (
+      stock.companyName.toLowerCase().includes(q) ||
+      stock.ticker.toLowerCase().includes(q)
+    );
+  });
+
 
   return (
     <Box sx={{ height: '100%', width: '100%', p: 3 }}>
       <Grid container spacing={3} sx={{ height: '100%' }}>
 
-        <Grid item xs={12} md={4} sx={{ width: "35%" }}>
+        <Grid item xs={12} md={4} sx={{ width: "55%" }}>
           <Paper
             elevation={1}
             sx={{
@@ -315,62 +449,15 @@ const Dashboard = () => {
               flexDirection: 'column'
             }}
           >
-
-            <Box sx={{ mb: 2, width: '100%' }}>
-
-              <Grid item xs={12} sm={6} sx={{ mb: 2 }}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Filter By"
-                  value={filterField}
-                  onChange={(e) => setFilterField(e.target.value)}
-                  sx={{
-                    minHeight: 40
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  {filterFields.map((f) => (
-                    <MenuItem key={f.value} value={f.value}>
-                      {f.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Value"
-                  value={filterValue}
-                  disabled={!filterField}
-                  onChange={(e) => setFilterValue(e.target.value)}
-                  sx={{
-                    minHeight: 40
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  {filterOptions.map((val) => (
-                    <MenuItem key={val} value={val}>
-                      {val}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            </Box>
-
             <Box
               sx={{
-                maxHeight: '70vh',
+                maxHeight: '75vh',
                 overflowY: 'auto',
                 pr: 1,
                 mt: 1
               }}
             >
-              {/* STICKY HEADER */}
+
               <Box
                 sx={{
                   position: 'sticky',
@@ -383,12 +470,51 @@ const Dashboard = () => {
                   borderColor: 'divider'
                 }}
               >
-                <Typography variant="subtitle2" color="text.secondary">
-                  Your Investments
-                </Typography>
+                 <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+      <Typography variant="subtitle1" fontWeight={600}>
+        Your Investments
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Track, search, and manage your holdings
+      </Typography>
+    </Box>
               </Box>
 
-              {/* LOADING */}
+              <Box
+                sx={{
+                  p: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  backgroundColor: 'background.paper'
+                }}
+              >
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search by company or ticker…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  variant="outlined"
+                  InputProps={{
+                    sx: {
+                      borderRadius: 2,
+                      backgroundColor: 'background.default',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'divider'
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'text.secondary'
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'primary.main',
+                        borderWidth: 1
+                      }
+                    }
+                  }}
+                />
+              </Box>
+
+
               {loading && (
                 <Stack alignItems="center" mt={4}>
                   <CircularProgress size={24} />
@@ -402,14 +528,14 @@ const Dashboard = () => {
                 </Stack>
               )}
 
-              {/* ERROR */}
+
               {error && (
                 <Typography color="error" sx={{ mt: 2 }}>
                   {error}
                 </Typography>
               )}
 
-              {/* EMPTY STATE */}
+
               {!loading && filteredInvestments.length === 0 && (
                 <Typography
                   variant="body2"
@@ -420,36 +546,51 @@ const Dashboard = () => {
                 </Typography>
               )}
 
-              {/* LIST */}
               {!loading &&
-                filteredInvestments.map((inv) => (
+                filteredInvestmentsSearch.map((inv) => (
                   <Paper
                     key={inv.id}
                     variant="outlined"
                     sx={{
-                      p: 1.5,
-                      mb: 1,
+                      p: 2,
+                      mb: 1.5,
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      borderRadius: 1
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+                      '&:hover': {
+                        boxShadow: 2,
+                        borderColor: 'primary.light'
+                      }
                     }}
                   >
-                    {/* LEFT INFO */}
+                    {/* LEFT: Investment Info */}
                     <Box>
-                      <Typography variant="subtitle2">
-                        {inv.ticker} ({inv.assetType})
-                      </Typography>
+                      <Stack spacing={0.3}>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {stockMap[inv.ticker] || inv.ticker}
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ ml: 1 }}
+                          >
+                            {inv.ticker}
+                          </Typography>
+                        </Typography>
 
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-                        Qty: {inv.quantity} • {inv.currency} • Risk: {inv.riskLabel}
-                      </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Bought @ ${inv.buyPrice}
+                        </Typography>
+
+                        <Typography variant="caption" color="text.secondary">
+                          Qty: {inv.quantity} • {inv.currency} • Risk: {inv.riskLabel}
+                        </Typography>
+                      </Stack>
                     </Box>
 
-                    {/* ACTIONS */}
+                    {/* RIGHT: Actions */}
                     <Stack direction="row" spacing={1}>
                       <Button
                         size="small"
@@ -473,6 +614,7 @@ const Dashboard = () => {
                       </Button>
                     </Stack>
                   </Paper>
+
                 ))}
             </Box>
 
@@ -480,7 +622,7 @@ const Dashboard = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={8} sx={{ width: "55%", maxWidth: "55%" }}>
+        <Grid item xs={12} md={8} sx={{ width: "35%", maxWidth: "35%" }}>
           <Paper
             elevation={3}
             sx={{
@@ -495,21 +637,37 @@ const Dashboard = () => {
               overflow: "hidden"
             }}
           >
-            <Typography
-              variant="h5"
-              color="text.secondary"
-              gutterBottom
-              align="center"
-            >
-              Portfolio Risk Distribution
-            </Typography>
-
-          
             <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                gap: 2,
+                mt: 1,
+                flex: 1,
+              }}
             >
-              <PortfolioPieChart data={portfolioData} />
-        
+              <Stack spacing={2}>
+
+                <Paper sx={{ p: 1.5, height: 220 }}>
+                  <Typography variant="subtitle2" align="center" gutterBottom>
+                    Allocation by Stock
+                  </Typography>
+                  <PortfolioPieChart data={portfolioData} />
+                </Paper>
+
+
+                <Paper sx={{ p: 1.5, height: 220 }}>
+                  <Typography variant="subtitle2" align="center" gutterBottom>
+                    Allocation by Sector
+                  </Typography>
+                  <SectorAllocationChart data={sectorData} />
+                </Paper>
+              </Stack>
+
+
+
             </Box>
+
           </Paper>
         </Grid>
       </Grid>
@@ -542,6 +700,39 @@ const Dashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <SellQuantityDialog
+        open={quantityDialogOpen}
+        data={pendingSell}
+        onClose={() => setQuantityDialogOpen(false)}
+        onNext={handleQuantityNext}
+      />
+
+
+      <SellConfirmDialog
+        open={confirmOpen}
+        data={pendingSell}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmSell}
+      />
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={5000}
+        onClose={() => setToast(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setToast(prev => ({ ...prev, open: false }))}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+
+
 
     </Box>
   );

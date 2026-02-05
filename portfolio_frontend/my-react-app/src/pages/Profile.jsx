@@ -5,109 +5,137 @@ import {
   CardContent,
   Avatar,
   Typography,
+  Divider,
   Grid,
-  Divider
+  Chip
 } from '@mui/material';
 
 const Profile = () => {
   return (
     <Box
-  sx={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    p: 3,
-    backgroundColor: '#f3f4f6', // softer neutral
-  }}
->
-  <Card
-    elevation={2}
-    sx={{
-      maxWidth: 440,
-      width: '100%',
-      borderRadius: 3,
-    }}
-  >
-    <CardContent sx={{ p: 4 }}>
-      {/* PROFILE HEADER */}
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Avatar
-          sx={{
-            width: 96,
-            height: 96,
-            mx: 'auto',
-            mb: 2,
-            bgcolor: 'primary.main',
-            fontSize: 34,
-          }}
-        >
-          S
-        </Avatar>
+      sx={{
+        minHeight: '100vh',
+        p: 4,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'flex-start'
+      }}
+    >
+      <Card
+        elevation={1}
+        sx={{
+          width: '100%',
+          maxWidth: 900,
+          borderRadius: 2,
+          backgroundColor: '#f5f7fa',
+        }}
+      >
+        <CardContent sx={{ p: 4 }}>
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center'
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 88,
+                    height: 88,
+                    mb: 1.5,
+                    bgcolor: '#4f83cc',
+                    fontSize: 32,
+                    fontWeight: 700
+                  }}
+                >
+                  S
+                </Avatar>
 
-        <Typography variant="h6" fontWeight={600}>
-          Sumit Kumar
-        </Typography>
+                <Typography variant="h6" fontWeight={600}>
+                  Sumeet
+                </Typography>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mt: 0.5 }}
-        >
-          Active Investor
-        </Typography>
-      </Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
+                >
+                  Active Investor
+                </Typography>
 
-      <Divider sx={{ mb: 3 }} />
+                <Chip
+                  label="Technology Focused"
+                  size="small"
+                  sx={{
+                    backgroundColor: 'rgba(79,131,204,0.1)',
+                    color: '#2c5aa0',
+                    fontWeight: 500
+                  }}
+                />
+              </Box>
+            </Grid>
 
-      {/* PROFILE DETAILS */}
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        {[
-          { label: 'Full Name', value: 'Sumit Kumar' },
-          { label: 'Email', value: 'abhishek@example.com' },
-          { label: 'Username', value: 'sumit_01' },
-          { label: 'Phone', value: '+91 98765 43210' },
-          { label: 'Account Type', value: 'Individual' },
-          { label: 'Preferred Currency', value: 'USD' },
-          {
-            label: 'Bio',
-            value:
-              'Long-term investor focused on technology and growth stocks.',
-          },
-        ].map((item) => (
-          <Box
-            key={item.label}
-            sx={{
-              py: 1.5,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              '&:last-of-type': {
-                borderBottom: 'none',
-              },
-            }}
-          >
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ letterSpacing: 0.3 }}
-            >
-              {item.label}
-            </Typography>
+         
+            <Grid item xs={12} md={1}>
+              <Divider orientation="vertical" flexItem />
+            </Grid>
 
-            <Typography
-              variant="body1"
-              sx={{ mt: 0.5, lineHeight: 1.5 }}
-            >
-              {item.value}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
-    </CardContent>
-  </Card>
-</Box>
+            
+            <Grid item xs={12} md={8}>
+              <Grid container spacing={3}>
+                {[
+                  { label: 'Full Name', value: 'Sumeet' },
+                  { label: 'Email', value: 'Sumeet@example.com' },
+                  { label: 'Username', value: 'Sumeet_01' },
+                  { label: 'Phone', value: '+91 98765 xxxxx' },
+                  { label: 'Account Type', value: 'Individual' },
+                  { label: 'Preferred Currency', value: 'USD' }
+                ].map((item) => (
+                  <Grid item xs={12} sm={6} key={item.label}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ letterSpacing: 0.3 }}
+                    >
+                      {item.label}
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ mt: 0.3, fontWeight: 500 }}
+                    >
+                      {item.value}
+                    </Typography>
+                  </Grid>
+                ))}
 
-
+               
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ letterSpacing: 0.3 }}
+                  >
+                    Bio
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ mt: 0.5, lineHeight: 1.6 }}
+                  >
+                    Long-term investor focused on technology and growth stocks,
+                    with an emphasis on disciplined risk management and
+                    portfolio balance.
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 

@@ -3,8 +3,10 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export default function PortfolioPieChart({ data }) {
-  if (!data || data.length === 0) return null;
+export default function SectorAllocationChart({ data }) {
+  console.log("SectorAllocationChart received:", data);
+
+  if (!Array.isArray(data) || data.length === 0) return null;
 
   const values = data.map((entry) => entry.amount);
   const total = values.reduce((sum, v) => sum + v, 0);
@@ -14,18 +16,17 @@ export default function PortfolioPieChart({ data }) {
     datasets: [
       {
         data: values,
-       backgroundColor: [
-  "#34a853", 
-  "#4f7cff", 
-  "#e6a23c", 
-  "#e5533d", 
-  "#7b6ef6", 
-  "#ec6aa0", 
-  "#2fb9a3", 
-  "#5a67d8"  
-]
-
-,
+        backgroundColor: [
+          "#3b82f6",
+          "#22c55e",
+          "#f59e0b",
+          "#ef4444",
+          "#8b5cf6",
+          "#ec4899",
+          "#14b8a6",
+          "#6366f1",
+          "#64748b"
+        ],
         borderWidth: 1,
         cutout: "65%"
       }
@@ -37,7 +38,7 @@ export default function PortfolioPieChart({ data }) {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false 
+        display: false
       },
       tooltip: {
         callbacks: {

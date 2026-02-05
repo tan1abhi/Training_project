@@ -10,13 +10,10 @@ import {
   CircularProgress,
   Chip,
   Button,
-  Dialog,
-  DialogTitle,
-  IconButton,
-  DialogContent
+
 } from '@mui/material';
 
-import CloseIcon from '@mui/icons-material/Close';
+import RiskGraphsDialog from '../components/RiskGraphDialog';
 
 const RiskEngine = () => {
   const [riskData, setRiskData] = useState(null);
@@ -30,7 +27,7 @@ const RiskEngine = () => {
     const fetchRiskData = () => {
       fetch('http://localhost:4000/api/portfolio/risk')
         .then((res) => {
-          if (!res.ok) throw new Error('Failed to fetch risk data');
+          if (!res.ok) throw new "";
           return res.json();
         })
         .then((data) => {
@@ -48,6 +45,20 @@ const RiskEngine = () => {
 
     return () => clearInterval(intervalId);
   }, []);
+
+
+
+  const filteredAssets = React.useMemo(() => {
+    if (!riskData?.per_asset_risk) return [];
+
+    if (filter === 'all') return riskData.per_asset_risk;
+
+    return riskData.per_asset_risk.filter(
+      (asset) => asset.risk_label?.toLowerCase() === filter
+    );
+  }, [riskData, filter]);
+
+
 
   return (
     <Box sx={{ height: '100%', p: 3 }}>
@@ -107,7 +118,7 @@ const RiskEngine = () => {
                   </Typography>
 
                   <Stack spacing={1}>
-                    {riskData.per_asset_risk?.map((asset) => (
+                    {filteredAssets.map((asset) => (
                       <Paper
                         key={asset.ticker}
                         variant="outlined"
@@ -118,31 +129,30 @@ const RiskEngine = () => {
                           alignItems: 'center'
                         }}
                       >
-                        {/* Left: Ticker */}
+
                         <Typography fontWeight={600}>
                           {asset.ticker}
                         </Typography>
 
-                        {/* Middle: Risk contribution */}
+
                         <Typography color="text.secondary">
                           Contribution: {(asset.risk_contribution * 100).toFixed(1)}%
                         </Typography>
 
-                        {/* Right: Risk label */}
+
                         <Chip
                           label={asset.risk_label}
                           size="small"
                           color={
-                            asset.risk_label === "HIGH"
-                              ? "error"
-                              : asset.risk_label === "MEDIUM"
-                                ? "warning"
-                                : "success"
+                            asset.risk_label === 'HIGH'
+                              ? 'error'
+                              : asset.risk_label === 'MEDIUM'
+                                ? 'warning'
+                                : 'success'
                           }
                         />
                       </Paper>
                     ))}
-
                   </Stack>
                 </>
               )}
@@ -221,48 +231,7 @@ const RiskEngine = () => {
 
       </Grid>
 
-      <Dialog
-        open={openGraphsDialog}
-        onClose={() => setOpenGraphsDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            m: 0,
-            p: 2,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}
-        >
-          Portfolio Risk Graphs
-
-          <IconButton
-            aria-label="close"
-            onClick={() => setOpenGraphsDialog(false)}
-            sx={{ color: 'grey.500' }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent dividers>
-          <Box
-            sx={{
-              height: 400,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <Typography color="text.secondary">
-              Graphs will be rendered here
-            </Typography>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
+      <RiskGraphsDialog open={openGraphsDialog} setOpen={setOpenGraphsDialog} riskData={riskData} />
     </Box>
   );
 };

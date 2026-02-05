@@ -15,13 +15,13 @@ const MainLayout = ({ children }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Top Bar */}
+      
       <TopBar />
 
-      {/* Side Navigation */}
+      
       <SideNav />
 
-      {/* Main Content Area */}
+     
       <Box
         component="main"
         sx={{
@@ -35,7 +35,7 @@ const MainLayout = ({ children }) => {
           flexDirection: 'column',
         }}
       >
-        {/* Page Content Wrapper */}
+        
         <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
           {children}
         </Box>
