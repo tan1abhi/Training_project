@@ -16,7 +16,6 @@ public class HistoricalDataEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // --- Core Instrument Data ---
 
     @Column(nullable = false, length = 10)
     private String ticker; // e.g., "AAPL"
@@ -30,9 +29,8 @@ public class HistoricalDataEntity {
     private Double closePrice;
     private Long volume;
 
-    // ✅ FIXED: Added the variable 'portfolio' and correctly mapped the annotations
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "portfolio_id")
+    @JoinColumn(name = "portfolio_id" , nullable = true)
     private PortfolioEntity portfolio;
 
     // Default Constructor
