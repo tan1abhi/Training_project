@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Grid,
@@ -6,52 +6,54 @@ import {
   Typography,
   TextField,
   MenuItem,
+  Stack,
   CircularProgress,
   Chip,
-  Stack
+  Button,
+  Dialog,
+  DialogTitle,
+  IconButton,
+  DialogContent
 } from '@mui/material';
+
+import CloseIcon from '@mui/icons-material/Close';
 
 const RiskEngine = () => {
   const [riskData, setRiskData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [openGraphsDialog, setOpenGraphsDialog] = useState(false);
+
 
   useEffect(() => {
-  const fetchRiskData = () => {
-    fetch('http://localhost:4000/api/portfolio/risk')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch risk data');
-        return res.json();
-      })
-      .then((data) => {
-        setRiskData(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  };
+    const fetchRiskData = () => {
+      fetch('http://localhost:4000/api/portfolio/risk')
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch risk data');
+          return res.json();
+        })
+        .then((data) => {
+          setRiskData(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          setError(err.message);
+          setLoading(false);
+        });
+    };
 
-  fetchRiskData();
-  const intervalId = setInterval(fetchRiskData, 60000);
+    fetchRiskData();
+    const intervalId = setInterval(fetchRiskData, 60000);
 
-  return () => clearInterval(intervalId);
-}, []);
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
-    <Box
-      sx={{
-        height: '100%',
-        width: '100%',
-        p: 3,
-        boxSizing: 'border-box'
-      }}
-    >
-      <Grid container spacing={3} sx={{ height: '100%', width: '100%' }}>
-        {/* LEFT SECTION — 30% */}
-        <Grid item xs={12} md={4} sx={{ height: '90%', width: '25%' }}>
+    <Box sx={{ height: '100%', p: 3 }}>
+      <Grid container spacing={3} sx={{ height: '100%' }}>
+
+        <Grid item xs={12} md={4} sx={{ height: '100%', width: '30%', pr: 1 }}>
           <Paper
             elevation={1}
             sx={{
@@ -61,7 +63,7 @@ const RiskEngine = () => {
               flexDirection: 'column'
             }}
           >
-            {/* Filter */}
+
             <TextField
               select
               fullWidth
@@ -77,62 +79,95 @@ const RiskEngine = () => {
               <MenuItem value="high">High Risk</MenuItem>
             </TextField>
 
-            {/* List */}
-            <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+            <Box
+              sx={{
+                height: '70%',
+                overflowY: 'auto',
+                pr: 1,
+                pb: 4,
+                borderRadius: 1
+              }}
+            >
               {loading && (
                 <Stack alignItems="center" mt={4}>
                   <CircularProgress size={28} />
                 </Stack>
               )}
 
-              {error && (
-                <Typography color="error">
-                  {error}
-                </Typography>
-              )}
+              {error && <Typography color="error">{error}</Typography>}
 
               {riskData && (
                 <>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Portfolio Assets
                   </Typography>
 
                   <Stack spacing={1}>
-                    {riskData.assets.map((symbol) => (
+                    {riskData.per_asset_risk?.map((asset) => (
                       <Paper
-                        key={symbol}
+                        key={asset.ticker}
                         variant="outlined"
-                        sx={{ p: 1, display: 'flex', justifyContent: 'space-between' }}
+                        sx={{
+                          p: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
                       >
-                        <Typography>{symbol}</Typography>
+                        {/* Left: Ticker */}
+                        <Typography fontWeight={600}>
+                          {asset.ticker}
+                        </Typography>
+
+                        {/* Middle: Risk contribution */}
+                        <Typography color="text.secondary">
+                          Contribution: {(asset.risk_contribution * 100).toFixed(1)}%
+                        </Typography>
+
+                        {/* Right: Risk label */}
                         <Chip
-                          label={riskData.risk}
+                          label={asset.risk_label}
                           size="small"
                           color={
-                            riskData.risk === 'HIGH'
-                              ? 'error'
-                              : riskData.risk === 'MEDIUM'
-                              ? 'warning'
-                              : 'success'
+                            asset.risk_label === "HIGH"
+                              ? "error"
+                              : asset.risk_label === "MEDIUM"
+                                ? "warning"
+                                : "success"
                           }
                         />
                       </Paper>
                     ))}
+
                   </Stack>
                 </>
               )}
             </Box>
+
+
+
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => setOpenGraphsDialog(true)}
+            >
+              Show Graphs
+            </Button>
+
           </Paper>
         </Grid>
 
-        {/* RIGHT SECTION — 70% */}
-        <Grid item xs={12} md={8} sx={{ height: '90%', width: '65%' }}>
+
+        <Grid item xs={12} md={8} sx={{ height: '100%', width: '65%' }}>
           <Paper
             elevation={1}
             sx={{
               height: '100%',
-              width: '100%',
-              p: 2,
+              p: 3,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -144,7 +179,7 @@ const RiskEngine = () => {
             {riskData && (
               <>
                 <Typography variant="h4" gutterBottom>
-                  Portfolio Risk
+                  Overall Risk
                 </Typography>
 
                 <Typography
@@ -152,24 +187,82 @@ const RiskEngine = () => {
                   sx={{
                     fontWeight: 700,
                     color:
-                      riskData.risk === 'HIGH'
+                      riskData.risk_level === 'HIGH'
                         ? 'error.main'
-                        : riskData.risk === 'MEDIUM'
-                        ? 'warning.main'
-                        : 'success.main'
+                        : riskData.risk_level === 'MEDIUM'
+                          ? 'warning.main'
+                          : 'success.main'
                   }}
                 >
-                  {riskData.risk}
+                  {riskData.portfolio_risk?.risk_level}
                 </Typography>
 
-                <Typography variant="body1" color="text.secondary" mt={2}>
-                  Volatility Ratio: <strong>{riskData.volatility_ratio}</strong>
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  mt={2}
+                >
+                  Volatility Ratio:{' '}
+                  <strong>{riskData.portfolio_risk?.volatility_ratio}</strong>
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  mt={3}
+                  align="center"
+                >
+                  {riskData.portfolio_risk?.investor_summary}
                 </Typography>
               </>
             )}
           </Paper>
         </Grid>
+
       </Grid>
+
+      <Dialog
+        open={openGraphsDialog}
+        onClose={() => setOpenGraphsDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            m: 0,
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          Portfolio Risk Graphs
+
+          <IconButton
+            aria-label="close"
+            onClick={() => setOpenGraphsDialog(false)}
+            sx={{ color: 'grey.500' }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Box
+            sx={{
+              height: 400,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Typography color="text.secondary">
+              Graphs will be rendered here
+            </Typography>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
     </Box>
   );
 };

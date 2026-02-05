@@ -8,7 +8,9 @@ import {
   Divider,
   Typography,
   Box,
+  Avatar
 } from '@mui/material';
+
 import { Link } from 'react-router-dom';
 
 const drawerWidth = '10vw';
@@ -25,47 +27,100 @@ const SideNav = () => {
           boxSizing: 'border-box',
           top: '10vh',
           height: '90vh',
+          borderRight: '1px solid',
+          borderColor: 'divider',
+          backgroundColor: 'background.paper',
         },
       }}
     >
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" component="div">
-          Portfolio App
-        </Typography>
-      </Box>
-      <Divider />
-      <List>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/dashboard">
-            <ListItemText primary="Dashboard" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/risk-engine">
-            <ListItemText primary="Risk Engine" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/browse-stocks">
-            <ListItemText primary="Browse Stocks" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/balance">
-            <ListItemText primary="Balance" />
-          </ListItemButton>
+      <List sx={{ px: 1 }}>
+        {/* Primary Navigation */}
+        {[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'Risk Engine', to: '/risk-engine' },
+          { label: 'Browse', to: '/browse-stocks' },
+          { label: 'Balance', to: '/balance' },
+        ].map((item) => (
+          <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
+            <ListItemButton
+              component={Link}
+              to={item.to}
+              sx={{
+                borderRadius: 1,
+                px: 2,
+                py: 1,
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                },
+                '&.Mui-selected, &.Mui-selected:hover': {
+                  backgroundColor: 'action.selected',
+                },
+              }}
+            >
+              <ListItemText
+                primary={item.label}
+                primaryTypographyProps={{
+                  fontSize: 14,
+                  fontWeight: 500,
+                }}
+              />
+            </ListItemButton>
           </ListItem>
+        ))}
       </List>
-      <Divider />
+
+      <Divider sx={{ my: 1 }} />
+
+      {/* Push profile to bottom */}
       <Box sx={{ flexGrow: 1 }} />
-      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} to="/profile">
-            <ListItemText primary="Profile" />
-          </ListItemButton>
-        </ListItem>
-      </Box>
+
+      <Box
+  sx={{
+    px: 2,
+    pb: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1.5,
+  }}
+>
+  <Avatar
+    sx={{
+      width: 32,
+      height: 32,
+      bgcolor: 'primary.main',
+      fontSize: 14,
+      flexShrink: 0,
+    }}
+  >
+    S
+  </Avatar>
+
+  <ListItem disablePadding sx={{ width: '100%' }}>
+    <ListItemButton
+      component={Link}
+      to="/profile"
+      sx={{
+        borderRadius: 1,
+        px: 2,
+        py: 1,
+        '&:hover': {
+          backgroundColor: 'action.hover',
+        },
+      }}
+    >
+      <ListItemText
+        primary="Profile"
+        primaryTypographyProps={{
+          fontSize: 14,
+          fontWeight: 500,
+        }}
+      />
+    </ListItemButton>
+  </ListItem>
+</Box>
+{/* User Profile Section */}
     </Drawer>
+
   );
 };
 
