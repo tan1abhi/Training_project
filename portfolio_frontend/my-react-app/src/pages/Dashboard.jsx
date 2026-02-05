@@ -8,9 +8,12 @@ import {
   MenuItem,
   CircularProgress,
   Stack,
-  Button, 
-  Divider
+  Button,
+  Divider,
+  Dialog, DialogTitle, DialogContent, IconButton
 } from '@mui/material';
+import CloseIcon from "@mui/icons-material/Close";
+
 import { api } from '../services/api';
 import PortfolioPieChart from '../components/PortfolioPieChart';
 import StockPriceChart from '../components/StockPriceChart';
@@ -43,9 +46,22 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [sellingId, setSellingId] = useState(null);
 
-  const [symbol, setSymbol] = useState("AAPL");
+  const [symbol, setSymbol] = useState(null);
   const [stockData, setStockData] = useState([]);
   const [portfolioData, setPortfolioData] = useState([]);
+
+  const [openChart, setOpenChart] = useState(false);
+
+  const toggleGraphOn = (id, ticker) => {
+    setSymbol(ticker);
+    setOpenChart(true);
+  };
+
+  const toggleGraphOff = () => {
+    setOpenChart(false);
+    setSymbol(null);
+  };
+
 
 
   const loadPortfolio = async () => {
@@ -55,10 +71,10 @@ const Dashboard = () => {
       setInvestments(response.data);
       const formattedForPie = response.data.map((item) => ({
         stock: item.ticker,
-        amount: item.quantity * (item.buyPrice || 100), 
+        amount: item.quantity * (item.buyPrice || 100),
       }));
       setPortfolioData(formattedForPie);
-      
+
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch investments:", error);
@@ -151,7 +167,7 @@ const Dashboard = () => {
     setSymbol(ticker);
   };
 
- useEffect(() => {
+  useEffect(() => {
     let mounted = true;
     const load = async () => {
       setLoading(true);
@@ -176,7 +192,7 @@ const Dashboard = () => {
     };
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     // reset error
     setError(null);
 
@@ -214,7 +230,7 @@ const Dashboard = () => {
     setFilterValue(''); // force user to actively pick a value
   }, [filterField, allInvestments]);
 
-   useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     let timer = null;
 
@@ -269,7 +285,7 @@ const Dashboard = () => {
     };
   }, [filterField, filterValue, allInvestments]);
 
-   const reloadAll = async () => {
+  const reloadAll = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -450,7 +466,7 @@ const Dashboard = () => {
                         size="small"
                         variant="contained"
                         onClick={() =>
-                          handleSeeGraph(inv.id, inv.ticker)
+                          toggleGraphOn(inv.id, inv.ticker)
                         }
                       >
                         Visualize
@@ -465,40 +481,68 @@ const Dashboard = () => {
         </Grid>
 
         <Grid item xs={12} md={8} sx={{ width: "55%", maxWidth: "55%" }}>
-  <Paper
-    elevation={3}
-    sx={{
-      height: "100%",
-      p: 2,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "stretch",
-      justifyContent: "flex-start",
-      borderRadius: 2,
-      backgroundColor: "#f9f9f9",
-      overflow: "hidden"
-    }}
-  >
-    <Typography
-      variant="h5"
-      color="text.secondary"
-      gutterBottom
-      align="center"
-    >
-      Portfolio Risk Distribution
-    </Typography>
+          <Paper
+            elevation={3}
+            sx={{
+              height: "100%",
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "stretch",
+              justifyContent: "flex-start",
+              borderRadius: 2,
+              backgroundColor: "#f9f9f9",
+              overflow: "hidden"
+            }}
+          >
+            <Typography
+              variant="h5"
+              color="text.secondary"
+              gutterBottom
+              align="center"
+            >
+              Portfolio Risk Distribution
+            </Typography>
 
-    {/* Pie chart takes full available space */}
-    <Box
-      
-    >
-      <PortfolioPieChart data={portfolioData} />
-    </Box>
-  </Paper>
-</Grid>
-
-
+          
+            <Box
+            >
+              <PortfolioPieChart data={portfolioData} />
+        
+            </Box>
+          </Paper>
+        </Grid>
       </Grid>
+
+      <Dialog
+        open={openChart}
+        onClose={toggleGraphOff}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}
+        >
+          Stock Price Chart — {symbol}
+
+          <IconButton onClick={toggleGraphOff}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          {symbol && (
+            <Box sx={{ height: 400 }}>
+              <StockPriceChart data={stockData} ticker={symbol} />
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </Box>
   );
 };
