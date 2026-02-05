@@ -15,14 +15,14 @@ export default function PortfolioPieChart({ data }) {
       {
         data: values,
        backgroundColor: [
-  "#34a853", // balanced green
-  "#4f7cff", // balanced blue
-  "#e6a23c", // balanced amber
-  "#e5533d", // balanced red
-  "#7b6ef6", // balanced violet
-  "#ec6aa0", // balanced rose
-  "#2fb9a3", // balanced teal
-  "#5a67d8"  // balanced indigo
+  "#34a853", 
+  "#4f7cff", 
+  "#e6a23c", 
+  "#e5533d", 
+  "#7b6ef6", 
+  "#ec6aa0", 
+  "#2fb9a3", 
+  "#5a67d8"  
 ]
 
 ,
@@ -37,7 +37,7 @@ export default function PortfolioPieChart({ data }) {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false // remove labels below
+        display: false 
       },
       tooltip: {
         callbacks: {

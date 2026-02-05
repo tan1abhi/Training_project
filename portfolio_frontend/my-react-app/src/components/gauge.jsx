@@ -5,9 +5,9 @@ import { Box, Typography } from '@mui/material';
 const MAX_BALANCE = 10000;
 
 const getColor = (balance) => {
-    if (balance >= 7000) return '#2e7d32'; // green
-    if (balance >= 3000) return '#f9a825'; // amber
-    return '#c62828'; // red
+    if (balance >= 7000) return '#2e7d32'; 
+    if (balance >= 3000) return '#f9a825'; 
+    return '#c62828'; 
 };
 
 const BalanceGauge = ({ balance = 0 }) => {

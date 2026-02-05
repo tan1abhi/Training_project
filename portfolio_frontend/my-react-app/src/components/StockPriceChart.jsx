@@ -37,7 +37,7 @@ export default function StockPriceChart({ data }) {
 
   const normalizeDate = (d) => new Date(d + "T00:00:00");
 
-  // ---------- FILTER DATA BY RANGE ----------
+  
   const filteredData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -57,7 +57,7 @@ export default function StockPriceChart({ data }) {
     );
   }, [data, range]);
 
-  // ---------- TREND COLOR (GREEN / RED) ----------
+ 
   const trend = useMemo(() => {
     if (filteredData.length < 2) {
       return {
@@ -80,7 +80,7 @@ export default function StockPriceChart({ data }) {
         };
   }, [filteredData]);
 
-  // ---------- Y-AXIS DYNAMIC RANGE ----------
+  
   const prices = filteredData.map(d => d.close);
   const min = prices.length ? Math.min(...prices) : 0;
   const max = prices.length ? Math.max(...prices) : 0;
@@ -102,7 +102,7 @@ export default function StockPriceChart({ data }) {
     );
   }
 
-  // ---------- CHART DATA ----------
+ 
   const chartData = {
     labels: filteredData.map(entry => entry.time),
     datasets: [
@@ -119,7 +119,7 @@ export default function StockPriceChart({ data }) {
     ]
   };
 
-  // ---------- CHART OPTIONS ----------
+ 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
