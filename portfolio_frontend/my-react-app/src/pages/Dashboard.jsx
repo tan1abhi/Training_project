@@ -62,6 +62,8 @@ const Dashboard = () => {
   const [pendingSell, setPendingSell] = useState(null);
   const [sectorData, setSectorData] = useState([]);
   const [riskData, setRiskData] = useState([]);
+  const [search, setSearch] = useState('');
+
 
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
   const [toast, setToast] = useState({
@@ -70,7 +72,20 @@ const Dashboard = () => {
     severity: 'success'
   });
 
+  const [mockStocks, setMockStocks] = useState([]);
 
+  useEffect(() => {
+    const fetchStocks = async () => {
+      try {
+        const res = await api.getBrowseStocks();
+        setMockStocks(res.data);
+      } catch (error) {
+        console.error('Failed to fetch stocks', error);
+      }
+    };
+
+    fetchStocks();
+  }, []);
 
 
   const toggleGraphOn = (id, ticker) => {
@@ -94,14 +109,14 @@ const Dashboard = () => {
 
       setInvestments(data);
 
-     
+
       const stockData = data.map((item) => ({
         stock: item.ticker,
         amount: item.quantity * (item.buyPrice || 0),
       }));
       setPortfolioData(stockData);
 
-   
+
       const sectorMap = {};
       data.forEach((item) => {
         const value = item.quantity * (item.buyPrice || 0);
@@ -116,7 +131,7 @@ const Dashboard = () => {
       );
       setSectorData(formattedSectorData);
 
-     
+
       const riskMap = {};
       data.forEach((item) => {
         const value = item.quantity * (item.buyPrice || 0);
@@ -142,7 +157,7 @@ const Dashboard = () => {
     loadPortfolio();
   }, []);
 
- 
+
   useEffect(() => {
     const loadInvestments = async () => {
       try {
@@ -156,6 +171,14 @@ const Dashboard = () => {
 
     loadInvestments();
   }, []);
+
+  const stockMap = React.useMemo(() => {
+    return mockStocks.reduce((acc, stock) => {
+      acc[stock.ticker] = stock.companyName;
+      return acc;
+    }, {});
+  }, [mockStocks]);
+
 
 
   useEffect(() => {
@@ -191,6 +214,22 @@ const Dashboard = () => {
 
     setQuantityDialogOpen(true);
   };
+
+  const filteredInvestmentsSearch = React.useMemo(() => {
+    if (!search.trim()) return investments;
+
+    const query = search.toLowerCase();
+
+    return investments.filter(inv => {
+      const tickerMatch = inv.ticker.toLowerCase().includes(query);
+      const companyMatch = (stockMap[inv.ticker] || '')
+        .toLowerCase()
+        .includes(query);
+
+      return tickerMatch || companyMatch;
+    });
+  }, [search, investments, stockMap]);
+
 
 
   const handleQuantityNext = (qty) => {
@@ -278,7 +317,7 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    
+
     setError(null);
 
     if (filterField === 'all') {
@@ -287,7 +326,7 @@ const Dashboard = () => {
       return;
     }
 
-   
+
     const values = Array.from(
       new Set(
         allInvestments
@@ -312,7 +351,7 @@ const Dashboard = () => {
     );
 
     setFilterOptions(values);
-    setFilterValue(''); 
+    setFilterValue('');
   }, [filterField, allInvestments]);
 
   useEffect(() => {
@@ -327,7 +366,7 @@ const Dashboard = () => {
         return;
       }
 
-     
+
       if (!filterValue) return;
 
       const apiFn = endpointMap[filterField];
@@ -336,7 +375,7 @@ const Dashboard = () => {
         return;
       }
 
-      
+
       const normalizedValue =
         ['risk', 'type', 'curr', 'ticker'].includes(filterField)
           ? String(filterValue).toUpperCase()
@@ -361,7 +400,7 @@ const Dashboard = () => {
       }
     };
 
-   
+
     timer = setTimeout(runFilter, 200);
 
     return () => {
@@ -385,6 +424,16 @@ const Dashboard = () => {
     }
   };
 
+  const filteredStocks = mockStocks.filter((stock) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+
+    return (
+      stock.companyName.toLowerCase().includes(q) ||
+      stock.ticker.toLowerCase().includes(q)
+    );
+  });
+
 
   return (
     <Box sx={{ height: '100%', width: '100%', p: 3 }}>
@@ -402,13 +451,13 @@ const Dashboard = () => {
           >
             <Box
               sx={{
-                maxHeight: '70vh',
+                maxHeight: '75vh',
                 overflowY: 'auto',
                 pr: 1,
                 mt: 1
               }}
             >
-        
+
               <Box
                 sx={{
                   position: 'sticky',
@@ -421,12 +470,51 @@ const Dashboard = () => {
                   borderColor: 'divider'
                 }}
               >
-                <Typography variant="subtitle2" color="text.secondary">
-                  Your Investments
-                </Typography>
+                 <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+      <Typography variant="subtitle1" fontWeight={600}>
+        Your Investments
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Track, search, and manage your holdings
+      </Typography>
+    </Box>
               </Box>
 
-         
+              <Box
+                sx={{
+                  p: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  backgroundColor: 'background.paper'
+                }}
+              >
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search by company or ticker…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  variant="outlined"
+                  InputProps={{
+                    sx: {
+                      borderRadius: 2,
+                      backgroundColor: 'background.default',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'divider'
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'text.secondary'
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'primary.main',
+                        borderWidth: 1
+                      }
+                    }
+                  }}
+                />
+              </Box>
+
+
               {loading && (
                 <Stack alignItems="center" mt={4}>
                   <CircularProgress size={24} />
@@ -440,14 +528,14 @@ const Dashboard = () => {
                 </Stack>
               )}
 
-             
+
               {error && (
                 <Typography color="error" sx={{ mt: 2 }}>
                   {error}
                 </Typography>
               )}
 
-          
+
               {!loading && filteredInvestments.length === 0 && (
                 <Typography
                   variant="body2"
@@ -459,34 +547,50 @@ const Dashboard = () => {
               )}
 
               {!loading &&
-                filteredInvestments.map((inv) => (
+                filteredInvestmentsSearch.map((inv) => (
                   <Paper
                     key={inv.id}
                     variant="outlined"
                     sx={{
-                      p: 1.5,
-                      mb: 1,
+                      p: 2,
+                      mb: 1.5,
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      borderRadius: 1
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+                      '&:hover': {
+                        boxShadow: 2,
+                        borderColor: 'primary.light'
+                      }
                     }}
                   >
-               
+                    {/* LEFT: Investment Info */}
                     <Box>
-                      <Typography variant="subtitle2">
-                        {inv.ticker} (${inv.buyPrice})
-                      </Typography>
+                      <Stack spacing={0.3}>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {stockMap[inv.ticker] || inv.ticker}
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ ml: 1 }}
+                          >
+                            {inv.ticker}
+                          </Typography>
+                        </Typography>
 
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-                        Qty: {inv.quantity} • {inv.currency} • Risk: {inv.riskLabel}
-                      </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Bought @ ${inv.buyPrice}
+                        </Typography>
+
+                        <Typography variant="caption" color="text.secondary">
+                          Qty: {inv.quantity} • {inv.currency} • Risk: {inv.riskLabel}
+                        </Typography>
+                      </Stack>
                     </Box>
 
-                   
+                    {/* RIGHT: Actions */}
                     <Stack direction="row" spacing={1}>
                       <Button
                         size="small"
@@ -510,6 +614,7 @@ const Dashboard = () => {
                       </Button>
                     </Stack>
                   </Paper>
+
                 ))}
             </Box>
 
@@ -542,7 +647,7 @@ const Dashboard = () => {
               }}
             >
               <Stack spacing={2}>
-              
+
                 <Paper sx={{ p: 1.5, height: 220 }}>
                   <Typography variant="subtitle2" align="center" gutterBottom>
                     Allocation by Stock
@@ -550,7 +655,7 @@ const Dashboard = () => {
                   <PortfolioPieChart data={portfolioData} />
                 </Paper>
 
-               
+
                 <Paper sx={{ p: 1.5, height: 220 }}>
                   <Typography variant="subtitle2" align="center" gutterBottom>
                     Allocation by Sector

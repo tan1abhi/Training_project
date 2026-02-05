@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -35,50 +35,57 @@ const RANGES = {
 export default function StockPriceChart({ data }) {
   const [range, setRange] = useState("30D");
 
-  // ✅ Hooks must ALWAYS run
+  const normalizeDate = (d) => new Date(d + "T00:00:00");
 
-const normalizeDate = (d) => new Date(d + "T00:00:00");
+  // ---------- FILTER DATA BY RANGE ----------
+  const filteredData = useMemo(() => {
+    if (!data || data.length === 0) return [];
 
-const filteredData = useMemo(() => {
-  if (!data || data.length === 0) return [];
+    const sortedData = [...data].sort(
+      (a, b) => normalizeDate(a.time) - normalizeDate(b.time)
+    );
 
-  // ✅ FORCE ASCENDING ORDER (oldest → newest)
-  const sortedData = [...data].sort(
-    (a, b) => normalizeDate(a.time) - normalizeDate(b.time)
-  );
+    const latestDate = normalizeDate(
+      sortedData[sortedData.length - 1].time
+    );
 
-  // ✅ newest date is LAST
-  const latestDate = normalizeDate(
-    sortedData[sortedData.length - 1].time
-  );
+    const cutoff = new Date(latestDate);
+    cutoff.setDate(cutoff.getDate() - RANGES[range]);
 
-  const cutoff = new Date(latestDate);
-  cutoff.setDate(cutoff.getDate() - RANGES[range]);
+    return sortedData.filter(
+      (entry) => normalizeDate(entry.time) >= cutoff
+    );
+  }, [data, range]);
 
-  const result = sortedData.filter(
-    (entry) => normalizeDate(entry.time) >= cutoff
-  );
+  // ---------- TREND COLOR (GREEN / RED) ----------
+  const trend = useMemo(() => {
+    if (filteredData.length < 2) {
+      return {
+        line: "#64748b",
+        fill: "rgba(100,116,139,0.2)"
+      };
+    }
 
-  console.log(
-    `Range ${range}:`,
-    "oldest =", sortedData[0].time,
-    "newest =", sortedData[sortedData.length - 1].time,
-    "points =", result.length
-  );
+    const first = filteredData[0].close;
+    const last = filteredData[filteredData.length - 1].close;
 
-  return result;
-}, [data, range]);
+    return last >= first
+      ? {
+          line: "#34a853",
+          fill: "rgba(52,168,83,0.25)"
+        }
+      : {
+          line: "#e5533d",
+          fill: "rgba(229,83,61,0.25)"
+        };
+  }, [filteredData]);
 
+  // ---------- Y-AXIS DYNAMIC RANGE ----------
+  const prices = filteredData.map(d => d.close);
+  const min = prices.length ? Math.min(...prices) : 0;
+  const max = prices.length ? Math.max(...prices) : 0;
+  const padding = (max - min) * 0.1 || 1;
 
-
-useEffect(() => {
-  console.log("Selected range:", range);
-}, [range]);
-
-console.log("Sample dates:", data.slice(0, 5).map(d => d.time));
-
-
-  // ✅ Now conditional rendering is safe
   if (!data || data.length === 0) {
     return (
       <Box
@@ -95,21 +102,24 @@ console.log("Sample dates:", data.slice(0, 5).map(d => d.time));
     );
   }
 
+  // ---------- CHART DATA ----------
   const chartData = {
-    labels: filteredData.map((entry) => entry.time),
+    labels: filteredData.map(entry => entry.time),
     datasets: [
       {
         label: "Close Price",
-        data: filteredData.map((entry) => entry.close),
-        borderColor: "#38bdf8",
-        backgroundColor: "rgba(56,189,248,0.25)",
+        data: filteredData.map(entry => entry.close),
+        borderColor: trend.line,
+        backgroundColor: trend.fill,
         fill: true,
         tension: 0.35,
-        pointRadius: 2
+        pointRadius: 2,
+        pointBackgroundColor: trend.line
       }
     ]
   };
 
+  // ---------- CHART OPTIONS ----------
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -128,6 +138,8 @@ console.log("Sample dates:", data.slice(0, 5).map(d => d.time));
         grid: { display: false }
       },
       y: {
+        min: min - padding,
+        max: max + padding,
         ticks: { color: "#94a3b8" },
         grid: { color: "rgba(255,255,255,0.08)" }
       }
@@ -156,12 +168,10 @@ console.log("Sample dates:", data.slice(0, 5).map(d => d.time));
 
       <Box sx={{ height: 320 }}>
         <Line
-        key={`${range}-${filteredData.length}`}   // 🔥 stronger remount
-        data={chartData}
-        options={options}
+          key={`${range}-${filteredData.length}`}
+          data={chartData}
+          options={options}
         />
-
-
       </Box>
     </Box>
   );

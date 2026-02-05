@@ -14,16 +14,18 @@ export default function PortfolioPieChart({ data }) {
     datasets: [
       {
         data: values,
-        backgroundColor: [
-          "#22c55e",
-          "#3b82f6",
-          "#f59e0b",
-          "#ef4444",
-          "#8b5cf6",
-          "#ec4899",
-          "#14b8a6",
-          "#6366f1"
-        ],
+       backgroundColor: [
+  "#34a853", // balanced green
+  "#4f7cff", // balanced blue
+  "#e6a23c", // balanced amber
+  "#e5533d", // balanced red
+  "#7b6ef6", // balanced violet
+  "#ec6aa0", // balanced rose
+  "#2fb9a3", // balanced teal
+  "#5a67d8"  // balanced indigo
+]
+
+,
         borderWidth: 1,
         cutout: "65%"
       }
