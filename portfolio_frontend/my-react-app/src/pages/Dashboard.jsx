@@ -8,9 +8,12 @@ import {
   MenuItem,
   CircularProgress,
   Stack,
-  Button
+  Button, 
+  Divider
 } from '@mui/material';
 import { api } from '../services/api';
+import PortfolioPieChart from '../components/PortfolioPieChart';
+import StockPriceChart from '../components/StockPriceChart';
 
 const filterFields = [
   { label: 'Ticker', value: 'ticker' },
@@ -40,6 +43,9 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [sellingId, setSellingId] = useState(null);
 
+  const [symbol, setSymbol] = useState("AAPL");
+  const [stockData, setStockData] = useState([]);
+  const [portfolioData, setPortfolioData] = useState([]);
 
 
   const loadPortfolio = async () => {
@@ -47,6 +53,13 @@ const Dashboard = () => {
       setLoading(true);
       const response = await api.getInvestments();
       setInvestments(response.data);
+      const formattedForPie = response.data.map((item) => ({
+        stock: item.ticker,
+        amount: item.quantity * (item.buyPrice || 100), 
+      }));
+      setPortfolioData(formattedForPie);
+      
+      setLoading(false);
     } catch (error) {
       console.error("Failed to fetch investments:", error);
     } finally {
@@ -57,6 +70,14 @@ const Dashboard = () => {
   useEffect(() => {
     loadPortfolio();
   }, []);
+
+  // 2. Fetch Historical Data for Line Chart whenever symbol changes
+  useEffect(() => {
+    fetch(`http://localhost:8080/market/history/${symbol}`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setStockData(data))
+      .catch((err) => console.error("Stock data fetch error:", err));
+  }, [symbol]);
 
   const removeInvestmentFromState = (id, soldQty) => {
     setFilteredInvestments((prev) =>
@@ -126,9 +147,9 @@ const Dashboard = () => {
     }
   };
 
-  const handleSeeGraph = (id, ticker) => {
-    alert(`Graph feature coming soon for ${ticker} (ID: ${id})!`);
-  }
+  const handleSeeGraph = (ticker) => {
+    setSymbol(ticker);
+  };
 
  useEffect(() => {
     let mounted = true;
@@ -443,28 +464,40 @@ const Dashboard = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={8} sx={{ width: "55%" }}>
-          <Paper
-            elevation={3}
-            sx={{
-              height: '100%',
-              p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 2,
-              backgroundColor: '#f9f9f9'
-            }}
-          >
-            <Typography variant="h5" color="text.secondary" gutterBottom>
-              Portfolio Analytics
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              (Interactive Graphs will load here based on your portfolio data)
-            </Typography>
-          </Paper>
-        </Grid>
+        <Grid item xs={12} md={8} sx={{ width: "55%", maxWidth: "55%" }}>
+  <Paper
+    elevation={3}
+    sx={{
+      height: "100%",
+      p: 2,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      justifyContent: "flex-start",
+      borderRadius: 2,
+      backgroundColor: "#f9f9f9",
+      overflow: "hidden"
+    }}
+  >
+    <Typography
+      variant="h5"
+      color="text.secondary"
+      gutterBottom
+      align="center"
+    >
+      Portfolio Risk Distribution
+    </Typography>
+
+    {/* Pie chart takes full available space */}
+    <Box
+      
+    >
+      <PortfolioPieChart data={portfolioData} />
+    </Box>
+  </Paper>
+</Grid>
+
+
       </Grid>
     </Box>
   );

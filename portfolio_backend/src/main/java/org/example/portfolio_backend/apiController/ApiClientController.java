@@ -1,10 +1,12 @@
 package org.example.portfolio_backend.apiController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.portfolio_backend.entity.HistoricalDataEntity;
 import org.example.portfolio_backend.entity.StockMaster; // Added Import
 import org.example.portfolio_backend.model.AmountRequest;
 import org.example.portfolio_backend.model.DataReciever;
 import org.example.portfolio_backend.model.DataSender;
+import org.example.portfolio_backend.repo.HistoricalDataI;
 import org.example.portfolio_backend.services.BalanceService;
 import org.example.portfolio_backend.services.PortfolioApp;
 import org.example.portfolio_backend.services.YFinanceClientService;
@@ -15,43 +17,37 @@ import org.springframework.web.bind.annotation.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
- // Added base mapping for cleaner routing
+
 
 public class ApiClientController {
 
     private final PortfolioApp portfolioService;
     private final YFinanceClientService yFinanceClientService;
     private final BalanceService balanceService;
+    private final HistoricalDataI historicalDataService;
 
     public ApiClientController(PortfolioApp portfolioService,
                                YFinanceClientService yFinanceClientService,
-                               BalanceService balanceService) {
+                               BalanceService balanceService, HistoricalDataI historicalDataService) {
         this.portfolioService = portfolioService;
         this.yFinanceClientService = yFinanceClientService;
         this.balanceService = balanceService;
+        this.historicalDataService = historicalDataService;
     }
 
-    // =================================================================
-    // MARKET DATA ENDPOINTS (NEW)
-    // =================================================================
 
-    /**
-     * Fetch all available stocks and real-time prices from the StockMaster table.
-     * This is what your React "Browse Stocks" page will call by default.
-     */
     @GetMapping("/market/stocks")
     public ResponseEntity<List<StockMaster>> getMarketStocks() {
         return ResponseEntity.ok(portfolioService.getAvailableMarketStocks());
     }
 
-    /**
-     * Manually trigger a refresh of market data for specific tickers.
-     */
     @PostMapping("/market")
     public ResponseEntity<String> syncMarket() {
         List<String> tickersToSync = List.of("AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "AVGO", "ORCL", "TSM", "ADBE",
@@ -104,9 +100,7 @@ public class ApiClientController {
         }
     }
 
-    // =================================================================
-    // BALANCE ENDPOINTS
-    // =================================================================
+
 
     @GetMapping("/balance")
     public Double getBalance() {
@@ -127,14 +121,34 @@ public class ApiClientController {
         }
     }
 
-    // =================================================================
-    // INVESTMENT ENDPOINTS
-    // =================================================================
+
 
     @GetMapping("/investments")
     public List<DataSender> getInvestments(){
         return portfolioService.getAllInvestments();
     }
+
+    @GetMapping("/market/history/{ticker}")
+    public ResponseEntity<?> getStockHistory(@PathVariable String ticker) {
+        try {
+            List<HistoricalDataEntity> dbHistory = historicalDataService.getHistoryByTicker(ticker.toUpperCase());
+
+            List<Map<String, Object>> chartFormattedData = dbHistory.stream()
+                    .map(entry -> {
+                        Map<String, Object> point = new HashMap<>();
+                        point.put("time", entry.getPriceDate().toString());
+                        point.put("close", entry.getClosePrice());
+                        return point;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(chartFormattedData);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Could not retrieve history: " + e.getMessage());
+        }
+    }
+
 
     @GetMapping("/investments/id/{id}")
     public DataSender getInvestmentsById(@PathVariable long id){
