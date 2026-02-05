@@ -11,7 +11,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-risk_model = joblib.load("risk_model.pkl")
+risk_model = joblib.load("risk_model_new.pkl")
 
 
 def fetch_transactions_from_db():
