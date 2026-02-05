@@ -10,12 +10,21 @@ import {
   Box,
   Avatar
 } from '@mui/material';
+import { Link, useLocation } from 'react-router-dom';
 
-import { Link } from 'react-router-dom';
+const drawerWidth = 220;
 
-const drawerWidth = '10vw';
+const navItems = [
+  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Risk Engine', to: '/risk-engine' },
+  { label: 'Browse', to: '/browse-stocks' },
+  { label: 'My Space', to: '/balance' }, 
+  { label: 'Profile', to: '/profile' }
+];
 
 const SideNav = () => {
+  const location = useLocation();
+
   return (
     <Drawer
       variant="permanent"
@@ -25,102 +34,110 @@ const SideNav = () => {
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
-          top: '10vh',
-          height: '90vh',
+          top: '72px',
+          height: 'calc(100vh - 72px)',
           borderRight: '1px solid',
           borderColor: 'divider',
-          backgroundColor: 'background.paper',
-        },
+
+          
+          backgroundColor: '#f3f7fd'
+        }
       }}
     >
-      <List sx={{ px: 1 }}>
-        {/* Primary Navigation */}
-        {[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'Risk Engine', to: '/risk-engine' },
-          { label: 'Browse', to: '/browse-stocks' },
-          { label: 'my space', to: '/balance' },
-        ].map((item) => (
-          <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
-              component={Link}
-              to={item.to}
-              sx={{
-                borderRadius: 1,
-                px: 2,
-                py: 1,
-                '&:hover': {
-                  backgroundColor: 'action.hover',
-                },
-                '&.Mui-selected, &.Mui-selected:hover': {
-                  backgroundColor: 'action.selected',
-                },
-              }}
-            >
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{
-                  fontSize: 14,
-                  fontWeight: 500,
+     
+      <Box sx={{ px: 2, pt: 2 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: 'text.secondary',
+            letterSpacing: 0.6,
+            fontWeight: 600,
+            textTransform: 'uppercase'
+          }}
+        >
+          Navigation
+        </Typography>
+      </Box>
+
+      <List sx={{ px: 1.5, mt: 1 }}>
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.to;
+
+          return (
+            <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                component={Link}
+                to={item.to}
+                sx={{
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
+
+                 
+                  backgroundColor: isActive
+                    ? 'rgba(79,131,204,0.15)'
+                    : 'transparent',
+
+                  borderLeft: isActive
+                    ? '3px solid #4f83cc'
+                    : '3px solid transparent',
+
+                  '&:hover': {
+                    backgroundColor: 'rgba(79,131,204,0.12)'
+                  }
                 }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
+              >
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontSize: 14,
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? '#2c5aa0' : 'text.primary'
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
 
-      <Divider sx={{ my: 1 }} />
+      <Divider sx={{ my: 2 }} />
 
-      {/* Push profile to bottom */}
+      
       <Box sx={{ flexGrow: 1 }} />
 
+     
       <Box
-  sx={{
-    px: 2,
-    pb: 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1.5,
-  }}
->
-  <Avatar
-    sx={{
-      width: 32,
-      height: 32,
-      bgcolor: 'primary.main',
-      fontSize: 14,
-      flexShrink: 0,
-    }}
-  >
-    S
-  </Avatar>
-
-  <ListItem disablePadding sx={{ width: '100%' }}>
-    <ListItemButton
-      component={Link}
-      to="/profile"
-      sx={{
-        borderRadius: 1,
-        px: 2,
-        py: 1,
-        '&:hover': {
-          backgroundColor: 'action.hover',
-        },
-      }}
-    >
-      <ListItemText
-        primary="Profile"
-        primaryTypographyProps={{
-          fontSize: 14,
-          fontWeight: 500,
+        sx={{
+          px: 2,
+          pb: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5
         }}
-      />
-    </ListItemButton>
-  </ListItem>
-</Box>
-{/* User Profile Section */}
-    </Drawer>
+      >
+        <Avatar
+          sx={{
+            width: 36,
+            height: 36,
+            bgcolor: '#4f83cc',
+            fontSize: 14,
+            fontWeight: 600
+          }}
+        >
+          S
+        </Avatar>
 
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="body2" fontWeight={600}>
+            Summet
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Active Investor
+          </Typography>
+        </Box>
+      </Box>
+    </Drawer>
   );
 };
 

@@ -65,7 +65,7 @@ const RiskGraph = ({ riskData }) => {
       }}
     >
 
-      {/* ================= Risk Contribution ================= */}
+      
       <Typography variant="h6" gutterBottom>
         Asset-wise Risk Contribution (%)
       </Typography>
@@ -88,7 +88,7 @@ const RiskGraph = ({ riskData }) => {
 
       <Divider sx={{ my: 4 }} />
 
-      {/* ================= Weight vs Risk ================= */}
+      
       <Typography variant="h6" gutterBottom>
         Portfolio Weight vs Risk Contribution
       </Typography>
@@ -120,7 +120,7 @@ const RiskGraph = ({ riskData }) => {
 
       <Divider sx={{ my: 4 }} />
 
-      {/* ================= Monte Carlo ================= */}
+      
       <Typography variant="h6" gutterBottom>
         Monte Carlo Return Scenarios (Next Month %)
       </Typography>

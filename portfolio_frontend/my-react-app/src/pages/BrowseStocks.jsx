@@ -178,7 +178,8 @@ const BrowseStocks = () => {
             sx={{
               height: '100%',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              // backgroundColor: '#f5f7fa',
             }}
           >
 
