@@ -13,6 +13,9 @@ import {
   Dialog, DialogTitle, DialogContent, IconButton
 } from '@mui/material';
 import CloseIcon from "@mui/icons-material/Close";
+import SectorAllocationChart from "../components/SectorAllocationChart";
+import StockValueBarChart from "../components/StockValueBarChart";
+
 
 import { api } from '../services/api';
 import PortfolioPieChart from '../components/PortfolioPieChart';
@@ -57,6 +60,8 @@ const Dashboard = () => {
   const [openChart, setOpenChart] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingSell, setPendingSell] = useState(null);
+  const [sectorData, setSectorData] = useState([]);
+  const [riskData, setRiskData] = useState([]);
 
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
   const [toast, setToast] = useState({
@@ -83,15 +88,49 @@ const Dashboard = () => {
   const loadPortfolio = async () => {
     try {
       setLoading(true);
-      const response = await api.getInvestments();
-      setInvestments(response.data);
-      const formattedForPie = response.data.map((item) => ({
-        stock: item.ticker,
-        amount: item.quantity * (item.buyPrice || 100),
-      }));
-      setPortfolioData(formattedForPie);
 
-      setLoading(false);
+      const response = await api.getInvestments();
+      const data = response.data;
+
+      setInvestments(data);
+
+     
+      const stockData = data.map((item) => ({
+        stock: item.ticker,
+        amount: item.quantity * (item.buyPrice || 0),
+      }));
+      setPortfolioData(stockData);
+
+   
+      const sectorMap = {};
+      data.forEach((item) => {
+        const value = item.quantity * (item.buyPrice || 0);
+        sectorMap[item.sector] = (sectorMap[item.sector] || 0) + value;
+      });
+
+      const formattedSectorData = Object.entries(sectorMap).map(
+        ([sector, amount]) => ({
+          stock: sector,
+          amount,
+        })
+      );
+      setSectorData(formattedSectorData);
+
+     
+      const riskMap = {};
+      data.forEach((item) => {
+        const value = item.quantity * (item.buyPrice || 0);
+        riskMap[item.riskLabel] = (riskMap[item.riskLabel] || 0) + value;
+      });
+
+      const formattedRiskData = Object.entries(riskMap).map(
+        ([risk, amount]) => ({
+          stock: risk,
+          amount,
+        })
+      );
+      setRiskData(formattedRiskData);
+
     } catch (error) {
       console.error("Failed to fetch investments:", error);
     } finally {
@@ -103,13 +142,29 @@ const Dashboard = () => {
     loadPortfolio();
   }, []);
 
-  // 2. Fetch Historical Data for Line Chart whenever symbol changes
+ 
+  useEffect(() => {
+    const loadInvestments = async () => {
+      try {
+        const response = await api.getInvestments();
+        setInvestments(response.data);
+      } catch (error) {
+        console.error('Investments fetch error:', error);
+        setInvestments([]);
+      }
+    };
+
+    loadInvestments();
+  }, []);
+
+
   useEffect(() => {
     fetch(`http://localhost:8080/market/history/${symbol}`)
       .then((res) => res.ok ? res.json() : [])
       .then((data) => setStockData(data))
       .catch((err) => console.error("Stock data fetch error:", err));
   }, [symbol]);
+
 
   const removeInvestmentFromState = (id, soldQty) => {
     setFilteredInvestments((prev) =>
@@ -123,61 +178,74 @@ const Dashboard = () => {
     );
   };
 
-const handleSell = (id, ticker, maxQuantity) => {
-  if (sellingId === id) return;
-
-  setPendingSell({
-    id,
-    ticker,
-    maxQuantity
-  });
-
-  setQuantityDialogOpen(true);
-};
 
 
-const handleQuantityNext = (qty) => {
-  setPendingSell(prev => ({ ...prev, qty }));
-  setQuantityDialogOpen(false);
-  setConfirmOpen(true);
-};
+  const handleSell = (id, ticker, maxQuantity) => {
+    if (sellingId === id) return;
+
+    setPendingSell({
+      id,
+      ticker,
+      maxQuantity
+    });
+
+    setQuantityDialogOpen(true);
+  };
 
 
-const confirmSell = async () => {
-  const { id, ticker, qty } = pendingSell;
+  const handleQuantityNext = (qty) => {
+    setPendingSell(prev => ({ ...prev, qty }));
+    setQuantityDialogOpen(false);
+    setConfirmOpen(true);
+  };
 
-  try {
-    setSellingId(id);
 
-    const response = await api.sellStock(id, qty);
-    const { sellValue, profitPercentage } = response.data || {};
+  const confirmSell = async () => {
+    const { id, ticker, qty } = pendingSell;
 
-    removeInvestmentFromState(id, qty);
-    window.dispatchEvent(new Event('balanceUpdated'));
+    setInvestments(prev =>
+      prev
+        .map(inv =>
+          inv.id === id
+            ? { ...inv, quantity: inv.quantity - qty }
+            : inv
+        )
+        .filter(inv => inv.quantity > 0)
+    );
 
-   setToast({
-  open: true,
-  severity: 'success',
-  message: (
-    <>
-      <div><b>Transaction Successful</b></div>
-      <div>Sold: {ticker}</div>
-      <div>Quantity: {qty}</div>
-      <div>Received: ${Number(sellValue).toFixed(2)}</div>
-      {/* <div>Profit/Loss: {Number(profitPercentage).toFixed(2)}%</div> */}
-    </>
-  )
-});
 
-  } catch (error) {
-    console.error('Sell error:', error);
-    alert(error.response?.data || 'Sell failed');
-  } finally {
-    setSellingId(null);
-    setConfirmOpen(false);
-    setPendingSell(null);
-  }
-};
+    try {
+      setSellingId(id);
+
+      const response = await api.sellStock(id, qty);
+      const { sellValue, profitPercentage } = response.data || {};
+
+      removeInvestmentFromState(id, qty);
+      window.dispatchEvent(new Event('balanceUpdated'));
+
+      setToast({
+        open: true,
+        severity: 'success',
+        message: (
+          <>
+            <div><b>Transaction Successful</b></div>
+            <div>Sold: {ticker}</div>
+            <div>Quantity: {qty}</div>
+            <div>Received: ${Number(sellValue).toFixed(2)}</div>
+            {/* <div>Profit/Loss: {Number(profitPercentage).toFixed(2)}%</div> */}
+          </>
+        )
+      });
+
+    } catch (error) {
+      console.error('Sell error:', error);
+      alert(error.response?.data || 'Sell failed');
+    } finally {
+      setSellingId(null);
+      setConfirmOpen(false);
+      setPendingSell(null);
+    }
+  };
 
 
   const handleSeeGraph = (ticker) => {
@@ -210,7 +278,7 @@ const confirmSell = async () => {
   }, []);
 
   useEffect(() => {
-    // reset error
+    
     setError(null);
 
     if (filterField === 'all') {
@@ -219,7 +287,7 @@ const confirmSell = async () => {
       return;
     }
 
-    // derive unique values for selected field
+   
     const values = Array.from(
       new Set(
         allInvestments
@@ -244,7 +312,7 @@ const confirmSell = async () => {
     );
 
     setFilterOptions(values);
-    setFilterValue(''); // force user to actively pick a value
+    setFilterValue(''); 
   }, [filterField, allInvestments]);
 
   useEffect(() => {
@@ -259,7 +327,7 @@ const confirmSell = async () => {
         return;
       }
 
-      // if user has not chosen a value yet, do nothing
+     
       if (!filterValue) return;
 
       const apiFn = endpointMap[filterField];
@@ -268,7 +336,7 @@ const confirmSell = async () => {
         return;
       }
 
-      // normalize values expected by backend
+      
       const normalizedValue =
         ['risk', 'type', 'curr', 'ticker'].includes(filterField)
           ? String(filterValue).toUpperCase()
@@ -293,7 +361,7 @@ const confirmSell = async () => {
       }
     };
 
-    // debounce to avoid rapid repeated calls
+   
     timer = setTimeout(runFilter, 200);
 
     return () => {
@@ -322,7 +390,7 @@ const confirmSell = async () => {
     <Box sx={{ height: '100%', width: '100%', p: 3 }}>
       <Grid container spacing={3} sx={{ height: '100%' }}>
 
-        <Grid item xs={12} md={4} sx={{ width: "35%" }}>
+        <Grid item xs={12} md={4} sx={{ width: "55%" }}>
           <Paper
             elevation={1}
             sx={{
@@ -332,53 +400,6 @@ const confirmSell = async () => {
               flexDirection: 'column'
             }}
           >
-
-            <Box sx={{ mb: 2, width: '100%' }}>
-
-              {/* <Grid item xs={12} sm={6} sx={{ mb: 2 }}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Filter By"
-                  value={filterField}
-                  onChange={(e) => setFilterField(e.target.value)}
-                  sx={{
-                    minHeight: 40
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  {filterFields.map((f) => (
-                    <MenuItem key={f.value} value={f.value}>
-                      {f.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Value"
-                  value={filterValue}
-                  disabled={!filterField}
-                  onChange={(e) => setFilterValue(e.target.value)}
-                  sx={{
-                    minHeight: 40
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  {filterOptions.map((val) => (
-                    <MenuItem key={val} value={val}>
-                      {val}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid> */}
-            </Box>
-
             <Box
               sx={{
                 maxHeight: '70vh',
@@ -387,7 +408,7 @@ const confirmSell = async () => {
                 mt: 1
               }}
             >
-              {/* STICKY HEADER */}
+        
               <Box
                 sx={{
                   position: 'sticky',
@@ -405,7 +426,7 @@ const confirmSell = async () => {
                 </Typography>
               </Box>
 
-              {/* LOADING */}
+         
               {loading && (
                 <Stack alignItems="center" mt={4}>
                   <CircularProgress size={24} />
@@ -419,14 +440,14 @@ const confirmSell = async () => {
                 </Stack>
               )}
 
-              {/* ERROR */}
+             
               {error && (
                 <Typography color="error" sx={{ mt: 2 }}>
                   {error}
                 </Typography>
               )}
 
-              {/* EMPTY STATE */}
+          
               {!loading && filteredInvestments.length === 0 && (
                 <Typography
                   variant="body2"
@@ -437,7 +458,6 @@ const confirmSell = async () => {
                 </Typography>
               )}
 
-              {/* LIST */}
               {!loading &&
                 filteredInvestments.map((inv) => (
                   <Paper
@@ -452,10 +472,10 @@ const confirmSell = async () => {
                       borderRadius: 1
                     }}
                   >
-                    {/* LEFT INFO */}
+               
                     <Box>
                       <Typography variant="subtitle2">
-                        {inv.ticker} ({inv.assetType})
+                        {inv.ticker} (${inv.buyPrice})
                       </Typography>
 
                       <Typography
@@ -466,7 +486,7 @@ const confirmSell = async () => {
                       </Typography>
                     </Box>
 
-                    {/* ACTIONS */}
+                   
                     <Stack direction="row" spacing={1}>
                       <Button
                         size="small"
@@ -497,7 +517,7 @@ const confirmSell = async () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={8} sx={{ width: "55%", maxWidth: "55%" }}>
+        <Grid item xs={12} md={8} sx={{ width: "35%", maxWidth: "35%" }}>
           <Paper
             elevation={3}
             sx={{
@@ -512,21 +532,37 @@ const confirmSell = async () => {
               overflow: "hidden"
             }}
           >
-            <Typography
-              variant="h5"
-              color="text.secondary"
-              gutterBottom
-              align="center"
-            >
-              Portfolio Distribution
-            </Typography>
-
-          
             <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                gap: 2,
+                mt: 1,
+                flex: 1,
+              }}
             >
-              <PortfolioPieChart data={portfolioData} />
-        
+              <Stack spacing={2}>
+              
+                <Paper sx={{ p: 1.5, height: 220 }}>
+                  <Typography variant="subtitle2" align="center" gutterBottom>
+                    Allocation by Stock
+                  </Typography>
+                  <PortfolioPieChart data={portfolioData} />
+                </Paper>
+
+               
+                <Paper sx={{ p: 1.5, height: 220 }}>
+                  <Typography variant="subtitle2" align="center" gutterBottom>
+                    Allocation by Sector
+                  </Typography>
+                  <SectorAllocationChart data={sectorData} />
+                </Paper>
+              </Stack>
+
+
+
             </Box>
+
           </Paper>
         </Grid>
       </Grid>
@@ -576,20 +612,20 @@ const confirmSell = async () => {
       />
 
       <Snackbar
-  open={toast.open}
-  autoHideDuration={5000}
-  onClose={() => setToast(prev => ({ ...prev, open: false }))}
-  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
->
-  <Alert
-    onClose={() => setToast(prev => ({ ...prev, open: false }))}
-    severity={toast.severity}
-    variant="filled"
-    sx={{ width: '100%' }}
-  >
-    {toast.message}
-  </Alert>
-</Snackbar>
+        open={toast.open}
+        autoHideDuration={5000}
+        onClose={() => setToast(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setToast(prev => ({ ...prev, open: false }))}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
 
 
 

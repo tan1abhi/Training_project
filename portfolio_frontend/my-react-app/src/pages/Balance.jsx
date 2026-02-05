@@ -6,34 +6,40 @@ import {
     Typography,
     Button,
     TextField,
-    Stack, 
-    Grid
+    Stack,
+    Grid,
+    Divider,
+    CircularProgress
 } from '@mui/material';
 import { api } from '../services/api';
 import BalanceGauge from '../components/gauge';
+
 const Balance = () => {
     const [balance, setBalance] = useState(0);
     const [amount, setAmount] = useState('');
     const [showAdd, setShowAdd] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    const [news, setNews] = useState([]);
+    const [newsLoading, setNewsLoading] = useState(true);
+
+    const [investments, setInvestments] = useState([]);
+
+
     const fetchCurrentBalance = useCallback(async () => {
         try {
             const response = await api.getBalance();
             setBalance(response.data);
         } catch (error) {
-            console.error("Error fetching balance:", error);
-        } finally {
-            setLoading(false);
+            console.error('Error fetching balance:', error);
         }
     }, []);
 
     useEffect(() => {
-
         fetchCurrentBalance();
         window.addEventListener('balanceUpdated', fetchCurrentBalance);
-        const interval = setInterval(fetchCurrentBalance, 15000);
 
+        const interval = setInterval(fetchCurrentBalance, 15000);
 
         return () => {
             window.removeEventListener('balanceUpdated', fetchCurrentBalance);
@@ -41,8 +47,53 @@ const Balance = () => {
         };
     }, [fetchCurrentBalance]);
 
-    const handler = () => fetchCurrentBalance();
-    window.addEventListener('balanceUpdated', handler);
+    useEffect(() => {
+    const fetchInvestments = async () => {
+            try {
+                const res = await api.getInvestments();
+                setInvestments(res.data);
+            } catch (err) {
+                console.error('Failed to fetch investments', err);
+            }
+        };
+
+        fetchInvestments();
+    }, []);
+
+
+    const tickers = Array.from(
+        new Set(investments.map(inv => inv.ticker))
+    ).join(',');
+
+    useEffect(() => {
+    if (!tickers) return;
+
+    const fetchNews = async () => {
+        try {
+            setNewsLoading(true);
+
+            const url = `https://api.marketaux.com/v1/news/all?symbols=${tickers}&filter_entities=true&language=en&limit=10&api_token=4XHx8I27cguuFpwgGHZqaFmpro5pUQ1Gj0EexSkf`;
+
+            const res = await fetch(url);
+            const json = await res.json();
+
+            const parsed = json.data.slice(0, 6).map(item => ({
+                title: item.title,
+                link: item.url,
+                source: item.source,
+                publishedAt: item.published_at
+            }));
+
+            setNews(parsed);
+        } catch (err) {
+            console.error('Failed to fetch portfolio news', err);
+        } finally {
+            setNewsLoading(false);
+        }
+    };
+
+    fetchNews();
+}, [tickers]);
 
 
     const handleAddBalance = async () => {
@@ -53,12 +104,9 @@ const Balance = () => {
 
         try {
             setLoading(true);
-
             await api.updateBalance(Number(amount));
-
             setAmount('');
             setShowAdd(false);
-
             fetchCurrentBalance();
         } catch (err) {
             console.error('Failed to add balance', err);
@@ -68,34 +116,24 @@ const Balance = () => {
         }
     };
 
-
     return (
-        <Grid container minHeight="100vh">
-            {/* LEFT: Balance Section */}
-            <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                    display: 'flex',
-                    borderRight: '1px solid #e0e0e0',
-                    mr: 2
-                }}
-            >
+        <Grid container minHeight="100vh" spacing={2} p={3}>
+            {/* LEFT: BALANCE */}
+            <Grid item xs={12} md={6} display="flex" justifyContent="center">
                 <Card elevation={3} sx={{ width: 420 }}>
                     <CardContent
                         sx={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
-                            textAlign: 'center',
+                            textAlign: 'center'
                         }}
                     >
                         <Box sx={{ width: '100%', mb: 2 }}>
                             <BalanceGauge balance={balance} />
                         </Box>
 
-                        <Typography variant="h4" sx={{ mt: 1, mb: 2 }}>
+                        <Typography variant="h4" sx={{ mb: 2 }}>
                             ${balance.toFixed(2)}
                         </Typography>
 
@@ -148,50 +186,49 @@ const Balance = () => {
                 </Card>
             </Grid>
 
-
-            <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                    display: 'flex',
-                    width: '60%',
-                }}
-            >
-                <Card elevation={2} sx={{ width: "100%" }}>
+            {/* RIGHT: MARKET NEWS */}
+            <Grid item xs={12} md={6} display="flex" justifyContent="center">
+                <Card elevation={3} sx={{ width: '100%', maxWidth: 520 }}>
                     <CardContent>
-                        <Typography variant="h5" gutterBottom>
-                            Profit & Loss
+                        <Typography variant="h6" gutterBottom>
+                            Market News
                         </Typography>
 
-                        <Stack spacing={2}>
-                            <Box>
-                                <Typography variant="body2" color="text.secondary">
-                                    Today's P&L
-                                </Typography>
-                                <Typography variant="h6" color="success.main">
-                                    +$1,245.50
-                                </Typography>
-                            </Box>
+                        <Divider sx={{ mb: 2 }} />
 
-                            <Box>
-                                <Typography variant="body2" color="text.secondary">
-                                    Unrealized P&L
-                                </Typography>
-                                <Typography variant="h6" color="error.main">
-                                    -$320.75
-                                </Typography>
+                        {newsLoading ? (
+                            <Box display="flex" justifyContent="center" py={3}>
+                                <CircularProgress size={24} />
                             </Box>
-
-                            <Box>
-                                <Typography variant="body2" color="text.secondary">
-                                    Total Return
-                                </Typography>
-                                <Typography variant="h6">
-                                    +$924.75
-                                </Typography>
-                            </Box>
-                        </Stack>
+                        ) : (
+                            <Stack spacing={2}>
+                                {news.map((item, idx) => (
+                                    <Box key={idx}>
+                                        <Typography
+                                            variant="body2"
+                                            component="a"
+                                            href={item.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            sx={{
+                                                textDecoration: 'none',
+                                                color: 'primary.main',
+                                                fontWeight: 500,
+                                                '&:hover': {
+                                                    textDecoration: 'underline'
+                                                }
+                                            }}
+                                        >
+                                            {item.title}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {item.source} ·{' '}
+                                            {new Date(item.publishedAt).toLocaleString()}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Stack>
+                        )}
                     </CardContent>
                 </Card>
             </Grid>

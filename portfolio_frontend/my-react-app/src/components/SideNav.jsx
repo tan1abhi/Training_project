@@ -39,7 +39,7 @@ const SideNav = () => {
           { label: 'Dashboard', to: '/dashboard' },
           { label: 'Risk Engine', to: '/risk-engine' },
           { label: 'Browse', to: '/browse-stocks' },
-          { label: 'Balance', to: '/balance' },
+          { label: 'my space', to: '/balance' },
         ].map((item) => (
           <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton

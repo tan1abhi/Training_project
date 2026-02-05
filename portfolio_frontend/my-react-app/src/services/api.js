@@ -57,5 +57,10 @@ export const api = {
             params: { quantity }
         }),
 
-    getBrowseStocks: () => apiClient.get('/market/stocks')
+    getBrowseStocks: () => apiClient.get('/market/stocks'),
+
+    // GET /market/history/{ticker}
+    getStockHistory: (ticker) =>
+        apiClient.get(`/market/history/${ticker.toUpperCase()}`),
+
 };
