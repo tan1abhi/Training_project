@@ -15,107 +15,141 @@ import { api } from '../services/api';
 import BalanceGauge from '../components/gauge';
 
 const Balance = () => {
-    const [balance, setBalance] = useState(0);
-    const [amount, setAmount] = useState('');
-    const [showAdd, setShowAdd] = useState(false);
-    const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [amount, setAmount] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-    const [news, setNews] = useState([]);
-    const [newsLoading, setNewsLoading] = useState(true);
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
 
-    const [investments, setInvestments] = useState([]);
+  const [investments, setInvestments] = useState([]);
 
+  const fetchCurrentBalance = useCallback(async () => {
+    try {
+      const response = await api.getBalance();
+      setBalance(response.data);
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+    }
+  }, []);
 
-    const fetchCurrentBalance = useCallback(async () => {
-        try {
-            const response = await api.getBalance();
-            setBalance(response.data);
-        } catch (error) {
-            console.error('Error fetching balance:', error);
-        }
-    }, []);
+  useEffect(() => {
+    fetchCurrentBalance();
+    window.addEventListener('balanceUpdated', fetchCurrentBalance);
+    const interval = setInterval(fetchCurrentBalance, 15000);
 
-    useEffect(() => {
-        fetchCurrentBalance();
-        window.addEventListener('balanceUpdated', fetchCurrentBalance);
+    return () => {
+      window.removeEventListener('balanceUpdated', fetchCurrentBalance);
+      clearInterval(interval);
+    };
+  }, [fetchCurrentBalance]);
 
-        const interval = setInterval(fetchCurrentBalance, 15000);
-
-        return () => {
-            window.removeEventListener('balanceUpdated', fetchCurrentBalance);
-            clearInterval(interval);
-        };
-    }, [fetchCurrentBalance]);
-
-    useEffect(() => {
+  useEffect(() => {
     const fetchInvestments = async () => {
-            try {
-                const res = await api.getInvestments();
-                setInvestments(res.data);
-            } catch (err) {
-                console.error('Failed to fetch investments', err);
-            }
-        };
-
-        fetchInvestments();
-    }, []);
-
-
-    const tickers = Array.from(
-        new Set(investments.map(inv => inv.ticker))
-    ).join(',');
-
-    useEffect(() => {
-    if (!tickers) return;
-
-    const fetchNews = async () => {
-        try {
-            setNewsLoading(true);
-
-            const url = `https://api.marketaux.com/v1/news/all?symbols=${tickers}&filter_entities=true&language=en&limit=10&api_token=${process.env.REACT_APP_MARKETAUX_API_KEY3}`;
-
-            const res = await fetch(url);
-            const json = await res.json();
-
-            const parsed = json.data.slice(0, 6).map(item => ({
-                title: item.title,
-                link: item.url,
-                source: item.source,
-                publishedAt: item.published_at
-            }));
-
-            setNews(parsed);
-        } catch (err) {
-            console.error('Failed to fetch portfolio news', err);
-        } finally {
-            setNewsLoading(false);
-        }
+      try {
+        const res = await api.getInvestments();
+        setInvestments(res.data);
+      } catch (err) {
+        console.error('Failed to fetch investments', err);
+      }
     };
 
-    fetchNews();
-}, [tickers]);
+    fetchInvestments();
+  }, []);
 
+  useEffect(() => {
+    setNewsLoading(true);
 
-    const handleAddBalance = async () => {
-        if (!amount || Number(amount) <= 0) {
-            alert('Enter a valid amount');
-            return;
-        }
+    const parsed = mockMarketNewsResponse.data.map(item => ({
+      title: item.title,
+      link: item.url,
+      source: item.source,
+      publishedAt: item.published_at
+    }));
 
-        try {
-            setLoading(true);
-            await api.updateBalance(Number(amount));
-            setAmount('');
-            setShowAdd(false);
-            fetchCurrentBalance();
-        } catch (err) {
-            console.error('Failed to add balance', err);
-            alert('Failed to update balance');
-        } finally {
-            setLoading(false);
-        }
-    };
+    setNews(parsed.slice(0, 9));
+    setNewsLoading(false);
+  }, []);
 
+  const handleAddBalance = async () => {
+    if (!amount || Number(amount) <= 0) {
+      alert('Enter a valid amount');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.updateBalance(Number(amount));
+      setAmount('');
+      setShowAdd(false);
+      fetchCurrentBalance();
+    } catch (err) {
+      console.error('Failed to add balance', err);
+      alert('Failed to update balance');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mockMarketNewsResponse = {
+    data: [
+      {
+        title: "Apple shares rise as AI-driven services revenue beats expectations",
+        url: "https://www.reuters.com/technology/apple-ai-services-growth",
+        source: "reuters.com",
+        published_at: "2026-02-04T14:30:00Z"
+      },
+      {
+        title: "Microsoft expands cloud partnerships amid enterprise AI demand",
+        url: "https://www.bloomberg.com/news/articles/microsoft-cloud-ai-demand",
+        source: "bloomberg.com",
+        published_at: "2026-02-04T13:10:00Z"
+      },
+      {
+        title: "Amazon stock gains as logistics costs decline quarter-over-quarter",
+        url: "https://www.cnbc.com/2026/02/04/amazon-logistics-costs-stock.html",
+        source: "cnbc.com",
+        published_at: "2026-02-04T12:45:00Z"
+      },
+      {
+        title: "Nvidia leads semiconductor rally on data center optimism",
+        url: "https://www.ft.com/content/nvidia-semiconductor-rally",
+        source: "ft.com",
+        published_at: "2026-02-04T11:20:00Z"
+      },
+      {
+        title: "Tesla deliveries stabilize as pricing strategy shows early impact",
+        url: "https://www.wsj.com/articles/tesla-deliveries-pricing-strategy",
+        source: "wsj.com",
+        published_at: "2026-02-04T10:05:00Z"
+      },
+      {
+        title: "Palantir reports strong government contract pipeline for 2026",
+        url: "https://www.benzinga.com/markets/equities/palantir-government-contracts",
+        source: "benzinga.com",
+        published_at: "2026-02-04T09:40:00Z"
+      },
+      {
+        title: "US stocks edge higher as investors assess interest rate outlook",
+        url: "https://www.marketwatch.com/story/us-stocks-interest-rate-outlook",
+        source: "marketwatch.com",
+        published_at: "2026-02-04T09:10:00Z"
+      },
+      {
+        title: "Chip stocks outperform as global demand recovery gains traction",
+        url: "https://www.reuters.com/markets/global/chip-stocks-demand-recovery",
+        source: "reuters.com",
+        published_at: "2026-02-04T08:35:00Z"
+      },
+      {
+        title: "S&P 500 futures steady ahead of key inflation data release",
+        url: "https://www.cnbc.com/2026/02/04/sp500-futures-inflation.html",
+        source: "cnbc.com",
+        published_at: "2026-02-04T08:00:00Z"
+      }
+    ]
+  };
     return (
     <Grid container minHeight="100vh" spacing={3} p={3}>
   <Grid item xs={12} md={6} display="flex" justifyContent="center">
@@ -135,7 +169,7 @@ const Balance = () => {
           textAlign: 'center'
         }}
       >
-       
+        
         <Typography
           variant="caption"
           color="text.secondary"

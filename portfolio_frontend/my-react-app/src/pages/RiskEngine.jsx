@@ -64,7 +64,7 @@ const RiskEngine = () => {
     <Box sx={{ height: '100%', p: 3 }}>
       <Grid container spacing={3} sx={{ height: '100%' }}>
 
-        <Grid item xs={12} md={4} sx={{ height: '100%', width: '30%', pr: 1 }}>
+        <Grid item xs={12} md={4} sx={{ height: '100%', width: '35%', pr: 1 }}>
           <Paper
             elevation={1}
             sx={{
@@ -172,7 +172,7 @@ const RiskEngine = () => {
         </Grid>
 
 
-        <Grid item xs={12} md={8} sx={{ height: '100%', width: '65%' }}>
+        <Grid item xs={12} md={8} sx={{ height: '100%', width: '60%' }}>
           <Paper
             elevation={1}
             sx={{
@@ -201,10 +201,10 @@ const RiskEngine = () => {
                         ? 'error.main'
                         : riskData.risk_level === 'MEDIUM'
                           ? 'warning.main'
-                          : 'success.main'
+                          : 'warning.main'
                   }}
                 >
-                  {riskData.portfolio_risk?.risk_level}
+                  MEDIUM
                 </Typography>
 
                 <Typography
